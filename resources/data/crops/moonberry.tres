@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+crop_id = "moonberry"
+display_name = "月莓"
+mature_days = 4
+seed_item_id = "moonberry_seed"
+seed_color = Color(0.55, 0.43, 0.3, 1)
+growing_color = Color(0.28, 0.56, 0.46, 1)
+mature_color = Color(0.55, 0.3, 0.85, 1)

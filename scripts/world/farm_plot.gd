@@ -1,0 +1,99 @@
+extends Node2D
+
+enum PlotState { NORMAL, TILLED, WATERED, SEEDED, MATURE }
+
+@export var grid_position := Vector2i.ZERO
+var state: PlotState = PlotState.NORMAL
+var crop_data: CropData
+var growth_days := 0
+var last_processed_day := 1
+
+func _ready() -> void:
+	add_to_group("farm_plots")
+	_load_state()
+	TimeManager.day_started.connect(_on_day_started)
+	queue_redraw()
+
+func try_interact(tool_id: String, selected_crop: CropData) -> String:
+	if tool_id == "hoe":
+		if state == PlotState.NORMAL:
+			state = PlotState.TILLED
+			_save_state()
+			queue_redraw()
+			return "tilled"
+		if state == PlotState.TILLED:
+			if selected_crop == null:
+				return "no_crop_selected"
+			var seed_count: int = int(WorldManager.inventory.get(selected_crop.seed_item_id, 0))
+			if seed_count <= 0:
+				return "no_seeds"
+			WorldManager.inventory[selected_crop.seed_item_id] = seed_count - 1
+			crop_data = selected_crop
+			growth_days = 0
+			state = PlotState.SEEDED
+			_save_state()
+			queue_redraw()
+			return "seeded"
+		if state == PlotState.MATURE:
+			WorldManager.inventory[crop_data.crop_id] = int(WorldManager.inventory.get(crop_data.crop_id, 0)) + 1
+			var harvest_name := crop_data.display_name
+			crop_data = null
+			growth_days = 0
+			state = PlotState.TILLED
+			_save_state()
+			queue_redraw()
+			return "harvested_%s" % harvest_name
+	if tool_id == "watering_can" and state == PlotState.SEEDED:
+		state = PlotState.WATERED
+		_save_state()
+		queue_redraw()
+		return "watered"
+	return "invalid"
+
+func _on_day_started(new_day: int) -> void:
+	_process_days_until(new_day)
+
+func _process_days_until(new_day: int) -> void:
+	while last_processed_day < new_day:
+		if state == PlotState.WATERED and crop_data != null:
+			growth_days += 1
+			state = PlotState.MATURE if growth_days >= crop_data.mature_days else PlotState.SEEDED
+		last_processed_day += 1
+		_save_state()
+	queue_redraw()
+
+func _save_state() -> void:
+	WorldManager.farm_plots[grid_position] = {
+		"state": int(state),
+		"crop_id": crop_data.crop_id if crop_data else "",
+		"growth_days": growth_days,
+		"last_processed_day": last_processed_day,
+	}
+
+func _load_state() -> void:
+	var saved: Dictionary = WorldManager.farm_plots.get(grid_position, {})
+	if saved.is_empty():
+		last_processed_day = TimeManager.day
+		_save_state()
+		return
+	state = int(saved.get("state", PlotState.NORMAL)) as PlotState
+	growth_days = int(saved.get("growth_days", 0))
+	last_processed_day = int(saved.get("last_processed_day", TimeManager.day))
+	var crop_id: String = str(saved.get("crop_id", ""))
+	if crop_id != "":
+		crop_data = CropCatalog.get_crop(crop_id)
+	_process_days_until(TimeManager.day)
+
+func _draw() -> void:
+	if state == PlotState.NORMAL:
+		return
+	var base_color := Color("#9e825a")
+	if state == PlotState.WATERED:
+		base_color = Color("#5d7891")
+	draw_rect(Rect2(-28, -28, 56, 56), base_color)
+	draw_rect(Rect2(-28, -28, 56, 56), Color("#d5b879"), false, 2.0)
+	if crop_data != null and state != PlotState.TILLED:
+		var crop_color := crop_data.mature_color if state == PlotState.MATURE else (crop_data.growing_color if growth_days > 0 else crop_data.seed_color)
+		draw_circle(Vector2.ZERO, 17.0 if state == PlotState.MATURE else 11.0, crop_color)
+		if state != PlotState.MATURE:
+			draw_line(Vector2(0, 12), Vector2(0, -12), crop_color.darkened(0.35), 3.0)

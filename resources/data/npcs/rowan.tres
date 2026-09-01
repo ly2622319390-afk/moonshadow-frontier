@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+npc_id = "rowan"
+display_name = "罗文"
+placeholder_color = Color(0.72, 0.52, 0.2, 1)
+schedule = [{"start": 6, "end": 18, "region": "town", "target": Vector2(1120, 350), "action": "在市场摆摊"}, {"start": 18, "end": 24, "region": "none", "target": Vector2(0, 0), "action": "离开边境"}, {"start": 0, "end": 6, "region": "none", "target": Vector2(0, 0), "action": "离开边境"}]
+dialogue = "每三天我会带些王都的新货来。"

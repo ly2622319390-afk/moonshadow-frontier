@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+npc_id = "edrik"
+display_name = "艾德里克"
+placeholder_color = Color(0.72, 0.34, 0.25, 1)
+schedule = [{"start": 6, "end": 9, "region": "town", "target": Vector2(260, 350), "action": "前往铁匠铺"}, {"start": 9, "end": 17, "region": "town", "target": Vector2(260, 350), "action": "在铁匠铺工作"}, {"start": 17, "end": 20, "region": "forest", "target": Vector2(1430, 650), "action": "巡视矿洞入口"}, {"start": 20, "end": 24, "region": "town", "target": Vector2(180, 180), "action": "回家休息"}, {"start": 0, "end": 6, "region": "town", "target": Vector2(180, 180), "action": "回家休息"}]
+dialogue = "矿洞的石壁最近有些异常。"

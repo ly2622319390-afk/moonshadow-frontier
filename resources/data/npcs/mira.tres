@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+npc_id = "mira"
+display_name = "米拉"
+placeholder_color = Color(0.35, 0.62, 0.35, 1)
+schedule = [{"start": 8, "end": 12, "region": "town", "target": Vector2(760, 300), "action": "整理药草店"}, {"start": 12, "end": 18, "region": "forest", "target": Vector2(680, 600), "action": "在森林采集"}, {"start": 18, "end": 24, "region": "town", "target": Vector2(760, 300), "action": "整理药草店"}, {"start": 0, "end": 8, "region": "town", "target": Vector2(760, 300), "action": "休息"}]
+dialogue = "森林里的草药，最好在傍晚前采集。"

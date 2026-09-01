@@ -1,0 +1,41 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="月影边境"
+run/main_scene="res://scenes/regions/Farm.tscn"
+config/features=PackedStringArray("4.7")
+
+[autoload]
+
+WorldManager="*res://scripts/core/world_manager.gd"
+TimeManager="*res://scripts/core/time_manager.gd"
+CropCatalog="*res://scripts/core/crop_catalog.gd"
+FishingManager="*res://scripts/core/fishing_manager.gd"
+ItemCatalog="*res://scripts/core/item_catalog.gd"
+ShopManager="*res://scripts/core/shop_manager.gd"
+NPCatalog="*res://scripts/core/npc_catalog.gd"
+QuestManager="*res://scripts/core/quest_manager.gd"
+SaveManager="*res://scripts/core/save_manager.gd"
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/size/window_width_override=960
+window/size/window_height_override=540
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+2d/snap/snap_2d_transforms_to_pixel=true

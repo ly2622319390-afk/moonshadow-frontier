@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/fish_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fish_id = "silver_scale_fish"
+display_name = "银鳞鱼"
+allowed_periods = PackedStringArray("dusk")
+appearance_weight = 0.70
+difficulty = 1.35
+required_catch_seconds = 2.3
+placeholder_color = Color(0.72, 0.78, 0.88, 1)

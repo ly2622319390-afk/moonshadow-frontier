@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+npc_id = "ivy"
+display_name = "伊芙"
+placeholder_color = Color(0.42, 0.32, 0.7, 1)
+schedule = [{"start": 6, "end": 17, "region": "forest", "target": Vector2(700, 420), "action": "在森林巡查"}, {"start": 17, "end": 20, "region": "forest", "target": Vector2(920, 300), "action": "前往石碑"}, {"start": 20, "end": 24, "region": "forest", "target": Vector2(1250, 700), "action": "前往女巫圣地"}, {"start": 0, "end": 6, "region": "forest", "target": Vector2(1250, 700), "action": "在圣地守夜"}]
+dialogue = "月影石碑的裂痕，正在影响森林。"

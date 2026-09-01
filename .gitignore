@@ -1,0 +1,12 @@
+# Godot generated editor and import caches
+.godot/
+*.import
+
+# This folder is an older nested project copy, not the active project root.
+/moonshadow-frontier/
+
+# Local runtime and editor files
+*.log
+*.tmp
+*.bak
+.DS_Store

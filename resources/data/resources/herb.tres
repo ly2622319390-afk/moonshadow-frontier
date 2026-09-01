@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ResourceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/resource_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+resource_id = "herb"
+display_name = "草药"
+required_tool_id = "hoe"
+respawn_seconds = 20.0
+placeholder_color = Color(0.45, 0.75, 0.32, 1)

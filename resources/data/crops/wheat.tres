@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+crop_id = "wheat"
+display_name = "小麦"
+mature_days = 3
+seed_item_id = "wheat_seed"
+seed_color = Color(0.55, 0.43, 0.3, 1)
+growing_color = Color(0.35, 0.65, 0.25, 1)
+mature_color = Color(0.95, 0.78, 0.25, 1)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+crop_id = "carrot"
+display_name = "胡萝卜"
+mature_days = 2
+seed_item_id = "carrot_seed"
+seed_color = Color(0.55, 0.43, 0.3, 1)
+growing_color = Color(0.3, 0.68, 0.32, 1)
+mature_color = Color(0.9, 0.38, 0.18, 1)

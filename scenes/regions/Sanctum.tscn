@@ -1,0 +1,14 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/sanctum.gd" id="1_sanctum"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/ui/stage3_hud.gd" id="3_hud"]
+
+[node name="WitchSanctum" type="Node2D"]
+script = ExtResource("1_sanctum")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(140, 450)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_hud")

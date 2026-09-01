@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ToolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/tool_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+tool_id = "watering_can"
+display_name = "水壶"
+stamina_cost = 5
+cooldown_seconds = 0.25
+interaction_range = 58.0

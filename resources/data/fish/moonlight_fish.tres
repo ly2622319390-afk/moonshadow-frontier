@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/definitions/fish_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fish_id = "moonlight_fish"
+display_name = "月光鱼"
+allowed_periods = PackedStringArray("night")
+appearance_weight = 0.50
+difficulty = 1.8
+required_catch_seconds = 3.0
+placeholder_color = Color(0.55, 0.6, 0.95, 1)

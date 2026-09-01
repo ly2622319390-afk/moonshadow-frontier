@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://dbgnqmldcoqh3"]
+
+[ext_resource type="Script" uid="uid://cmbtuqxphr5nt" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="2_player"]
+
+[sub_resource type="RectangleShape2D" id="shape_horizontal"]
+size = Vector2(1600, 32)
+
+[sub_resource type="RectangleShape2D" id="shape_vertical"]
+size = Vector2(32, 900)
+
+[node name="Main" type="Node2D" unique_id=1508324506]
+script = ExtResource("1_main")
+
+[node name="MapBoundary" type="StaticBody2D" parent="." unique_id=1703359735]
+
+[node name="TopBoundary" type="CollisionShape2D" parent="MapBoundary" unique_id=1422228569]
+position = Vector2(800, 0)
+shape = SubResource("shape_horizontal")
+
+[node name="BottomBoundary" type="CollisionShape2D" parent="MapBoundary" unique_id=661961791]
+position = Vector2(800, 900)
+shape = SubResource("shape_horizontal")
+
+[node name="LeftBoundary" type="CollisionShape2D" parent="MapBoundary" unique_id=1022115386]
+position = Vector2(0, 450)
+shape = SubResource("shape_vertical")
+
+[node name="RightBoundary" type="CollisionShape2D" parent="MapBoundary" unique_id=934142422]
+position = Vector2(1600, 450)
+shape = SubResource("shape_vertical")
+
+[node name="Player" parent="." unique_id=865025281 instance=ExtResource("2_player")]
+position = Vector2(360, 450)
