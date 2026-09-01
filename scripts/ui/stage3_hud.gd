@@ -19,6 +19,25 @@ const SEED_IDS := ["wheat_seed", "carrot_seed", "moonberry_seed"]
 const PERIOD_NAMES := {"morning": "早晨", "day": "白天", "dusk": "傍晚", "night": "夜晚"}
 const CATEGORY_ORDER := ["种子", "作物", "鱼", "矿物", "采集物", "工具", "任务物品"]
 const MAX_STAMINA := 100
+const UI_TEXTURES := {
+	"status": "res://assets/ui/status_bar_background.png",
+	"date_time": "res://assets/ui/date_time_panel.png",
+	"stamina_frame": "res://assets/ui/stamina_bar_frame.png",
+	"stamina_fill": "res://assets/ui/stamina_bar_fill.png",
+	"coin": "res://assets/ui/coin_gold.png",
+	"quickbar": "res://assets/ui/quickbar_background.png",
+	"quickbar_slot": "res://assets/ui/quickbar_slot.png",
+	"quickbar_selected": "res://assets/ui/quickbar_selected_frame.png",
+	"inventory": "res://assets/ui/inventory_background.png",
+	"inventory_slot": "res://assets/ui/inventory_slot.png",
+	"inventory_selected": "res://assets/ui/inventory_selected_frame.png",
+	"interaction": "res://assets/ui/interaction_prompt_panel.png",
+	"shop": "res://assets/ui/shop_window_background.png",
+	"button_buy": "res://assets/ui/button_buy.png",
+	"button_sell": "res://assets/ui/button_sell.png",
+	"button_back": "res://assets/ui/button_back.png",
+	"button_close": "res://assets/ui/button_close.png",
+}
 
 var ui_root: Control
 var status_panel: PanelContainer
@@ -100,6 +119,34 @@ func _button_style(color: Color, border_color: Color) -> StyleBoxFlat:
 func _apply_panel_style(panel: PanelContainer, color := Color("#30271fdd")) -> void:
 	panel.add_theme_stylebox_override("panel", _panel_style(color))
 
+func _texture_style(path: String, left: float, top: float, right: float, bottom: float) -> StyleBoxTexture:
+	var box := StyleBoxTexture.new()
+	box.texture = load(path) as Texture2D
+	box.texture_margin_left = left
+	box.texture_margin_top = top
+	box.texture_margin_right = right
+	box.texture_margin_bottom = bottom
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 10
+	box.content_margin_bottom = 10
+	return box
+
+func _apply_texture_panel(panel: PanelContainer, texture_key: String, margins: Vector4) -> void:
+	var box := _texture_style(str(UI_TEXTURES[texture_key]), margins.x, margins.y, margins.z, margins.w)
+	if box.texture != null:
+		panel.add_theme_stylebox_override("panel", box)
+
+func _apply_texture_button(button: Button, texture_key: String, selected := false) -> void:
+	var path_key := texture_key
+	if selected:
+		path_key = "inventory_selected" if texture_key == "inventory_slot" else "quickbar_selected"
+	var box := _texture_style(str(UI_TEXTURES[path_key]), 22, 22, 22, 22)
+	if box.texture != null:
+		button.add_theme_stylebox_override("normal", box)
+		button.add_theme_stylebox_override("hover", box)
+		button.add_theme_stylebox_override("pressed", box)
+
 func _apply_button_style(button: Button, selected := false) -> void:
 	button.add_theme_font_size_override("font_size", 14)
 	button.add_theme_color_override("font_color", Color("#f5ead2"))
@@ -127,13 +174,18 @@ func _build_status_panel() -> void:
 	status_panel.offset_right = 370
 	status_panel.offset_bottom = 190
 	_apply_panel_style(status_panel)
+	_apply_texture_panel(status_panel, "status", Vector4(300, 180, 300, 180))
 	ui_root.add_child(status_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
 	status_panel.add_child(column)
 	column.add_child(_label("月影边境", 18, Color("#f4d35e")))
+	var date_time_panel := PanelContainer.new()
+	date_time_panel.name = "DateTimePanel"
+	_apply_texture_panel(date_time_panel, "date_time", Vector4(250, 140, 250, 140))
 	time_label = _label("", 16)
-	column.add_child(time_label)
+	date_time_panel.add_child(time_label)
+	column.add_child(date_time_panel)
 	weather_label = _label("天气：晴朗", 13, Color("#d8cbb2"))
 	column.add_child(weather_label)
 	var stamina_row := HBoxContainer.new()
@@ -141,14 +193,26 @@ func _build_status_panel() -> void:
 	stamina_bar = ProgressBar.new()
 	stamina_bar.custom_minimum_size = Vector2(185, 18)
 	stamina_bar.show_percentage = false
-	stamina_bar.add_theme_stylebox_override("background", _panel_style(Color("#1f2925"), Color("#594934")))
-	stamina_bar.add_theme_stylebox_override("fill", _panel_style(Color("#91b85d"), Color("#bdd77e")))
+	var stamina_frame := _texture_style(str(UI_TEXTURES["stamina_frame"]), 260, 180, 260, 180)
+	var stamina_fill := _texture_style(str(UI_TEXTURES["stamina_fill"]), 260, 180, 260, 180)
+	if stamina_frame.texture != null:
+		stamina_bar.add_theme_stylebox_override("background", stamina_frame)
+	if stamina_fill.texture != null:
+		stamina_bar.add_theme_stylebox_override("fill", stamina_fill)
 	stamina_row.add_child(stamina_bar)
 	stamina_value = _label("100/100", 12)
 	stamina_row.add_child(stamina_value)
 	column.add_child(stamina_row)
+	var gold_row := HBoxContainer.new()
+	var gold_icon := TextureRect.new()
+	gold_icon.texture = load(str(UI_TEXTURES["coin"])) as Texture2D
+	gold_icon.custom_minimum_size = Vector2(24, 24)
+	gold_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	gold_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	gold_row.add_child(gold_icon)
 	gold_label = _label("金币：100", 14, Color("#f4d35e"))
-	column.add_child(gold_label)
+	gold_row.add_child(gold_label)
+	column.add_child(gold_row)
 
 func _build_quest_panel() -> void:
 	quest_panel = PanelContainer.new()
@@ -179,6 +243,7 @@ func _build_hotbar() -> void:
 	bar_panel.offset_right = 342
 	bar_panel.offset_bottom = -18
 	_apply_panel_style(bar_panel, Color("#30271fe8"))
+	_apply_texture_panel(bar_panel, "quickbar", Vector4(250, 220, 250, 220))
 	ui_root.add_child(bar_panel)
 	hotbar = HBoxContainer.new()
 	hotbar.name = "Hotbar"
@@ -190,6 +255,7 @@ func _build_hotbar() -> void:
 		button.custom_minimum_size = Vector2(78, 58)
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.pressed.connect(_select_slot.bind(index))
+		_apply_texture_button(button, "quickbar_slot")
 		hotbar_buttons.append(button)
 		hotbar.add_child(button)
 	_update_hotbar()
@@ -203,6 +269,7 @@ func _build_action_panel() -> void:
 	action_panel.offset_right = -20
 	action_panel.offset_bottom = -105
 	_apply_panel_style(action_panel, Color("#30271fd9"))
+	_apply_texture_panel(action_panel, "interaction", Vector4(250, 150, 250, 150))
 	ui_root.add_child(action_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
@@ -230,6 +297,7 @@ func _build_inventory_panel() -> void:
 	inventory_panel.offset_right = 430
 	inventory_panel.offset_bottom = 270
 	_apply_panel_style(inventory_panel, Color("#30271ff5"))
+	_apply_texture_panel(inventory_panel, "inventory", Vector4(180, 160, 180, 160))
 	inventory_panel.visible = false
 	ui_root.add_child(inventory_panel)
 	var column := VBoxContainer.new()
@@ -241,6 +309,7 @@ func _build_inventory_panel() -> void:
 	close.size_flags_horizontal = Control.SIZE_SHRINK_END
 	close.pressed.connect(_toggle_inventory)
 	_apply_button_style(close)
+	_apply_texture_button(close, "button_close")
 	title_row.add_child(close)
 	column.add_child(title_row)
 	inventory_category_bar = HBoxContainer.new()
@@ -315,6 +384,7 @@ func _build_shop_panel() -> void:
 	shop_panel.offset_right = -20
 	shop_panel.offset_bottom = 700
 	_apply_panel_style(shop_panel, Color("#30271ff5"))
+	_apply_texture_panel(shop_panel, "shop", Vector4(180, 160, 180, 160))
 	shop_panel.visible = false
 	ui_root.add_child(shop_panel)
 	var scroll := ScrollContainer.new()
@@ -331,6 +401,7 @@ func _build_shop_panel() -> void:
 		buy_button.text = "%s  ·  %d 金币" % [ItemCatalog.get_item_name(item_id), ItemCatalog.get_buy_price(item_id)]
 		buy_button.pressed.connect(_buy_item.bind(item_id))
 		_apply_button_style(buy_button)
+		_apply_texture_button(buy_button, "button_buy")
 		column.add_child(buy_button)
 	column.add_child(_label("工具升级", 14, Color("#d8cbb2")))
 	for tool_id in ["hoe", "axe", "pickaxe", "watering_can"]:
@@ -353,6 +424,7 @@ func _build_shop_panel() -> void:
 		sell_button.text = "%s  ·  %d 金币" % [ItemCatalog.get_item_name(item_id), ItemCatalog.get_sell_price(item_id)]
 		sell_button.pressed.connect(_sell_item.bind(item_id))
 		_apply_button_style(sell_button)
+		_apply_texture_button(sell_button, "button_sell")
 		column.add_child(sell_button)
 	shop_message_label = _label("", 12, Color("#d8cbb2"))
 	shop_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -361,6 +433,7 @@ func _build_shop_panel() -> void:
 	close_button.text = "关闭商店（E）"
 	close_button.pressed.connect(ShopManager.close)
 	_apply_button_style(close_button)
+	_apply_texture_button(close_button, "button_close")
 	column.add_child(close_button)
 	var save_row := HBoxContainer.new()
 	for action in ["保存", "读取", "新游戏"]:
@@ -368,6 +441,7 @@ func _build_shop_panel() -> void:
 		save_button.text = action
 		save_button.pressed.connect(_save_action.bind(action))
 		_apply_button_style(save_button)
+		_apply_texture_button(save_button, "button_back")
 		save_row.add_child(save_button)
 	column.add_child(save_row)
 	var shop_upgrade := Button.new()
@@ -455,6 +529,7 @@ func _update_hotbar() -> void:
 		button.text = text
 		button.tooltip_text = _slot_tooltip(index)
 		_apply_button_style(button, index == selected_slot)
+		_apply_texture_button(button, "quickbar_slot", index == selected_slot)
 
 func _slot_tooltip(index: int) -> String:
 	if index < 5:
@@ -508,6 +583,7 @@ func _refresh_inventory() -> void:
 		item_button.tooltip_text = _inventory_item_tooltip(item_id)
 		item_button.pressed.connect(_assign_to_hotbar.bind(item_id))
 		_apply_button_style(item_button, item_id == selected_item_id)
+		_apply_texture_button(item_button, "inventory_slot", item_id == selected_item_id)
 		inventory_grid.add_child(item_button)
 
 func _inventory_item_text(item_id: String) -> String:

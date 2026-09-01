@@ -21,7 +21,10 @@ var selected_crop_index := 0
 var facing_direction := Vector2.DOWN
 var last_tool_time_msec := -100000
 var last_action_message := "1-5：选择工具 | Q：切换种子 | 空格：使用 | E：在家睡觉"
-const CHARACTER_FRAME_SIZE := 512.0
+const CHARACTER_FRAME_WIDTH := 768.0
+const CHARACTER_FRAME_HEIGHT := 1024.0
+const PLAYER_IDLE_TEXTURE: Texture2D = preload("res://assets/characters/player/player_idle_sheet.png")
+const PLAYER_WALK_TEXTURE: Texture2D = preload("res://assets/characters/player/player_walk_sheet.png")
 signal stamina_changed(current: int, maximum: int)
 
 func _physics_process(_delta: float) -> void:
@@ -199,17 +202,19 @@ func _update_character_art(is_moving: bool) -> void:
 	var character_art := get_node_or_null("CharacterArt") as Sprite2D
 	if character_art == null or character_art.texture == null:
 		return
+	var desired_texture := PLAYER_WALK_TEXTURE if is_moving else PLAYER_IDLE_TEXTURE
+	if character_art.texture != desired_texture:
+		character_art.texture = desired_texture
 	var column := 0
 	if absf(facing_direction.x) > absf(facing_direction.y):
 		column = 3 if facing_direction.x > 0.0 else 2
 	else:
 		column = 0 if facing_direction.y > 0.0 else 1
-	var row := 1 if is_moving else 0
 	character_art.region_rect = Rect2(
-		column * CHARACTER_FRAME_SIZE,
-		row * CHARACTER_FRAME_SIZE,
-		CHARACTER_FRAME_SIZE,
-		CHARACTER_FRAME_SIZE
+		column * CHARACTER_FRAME_WIDTH,
+		0,
+		CHARACTER_FRAME_WIDTH,
+		CHARACTER_FRAME_HEIGHT
 	)
 	queue_redraw()
 
