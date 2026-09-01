@@ -7,6 +7,13 @@ const EXIT_SCRIPT := preload("res://scripts/world/region_exit.gd")
 const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
 const FARM_PLOT_SCRIPT := preload("res://scripts/world/farm_plot.gd")
 const QUEST_STONE_SCRIPT := preload("res://scripts/world/quest_stone.gd")
+const BACKGROUND_PATHS := {
+	"farm": "res://assets/scenes/backgrounds/farm_background.png",
+	"town": "res://assets/scenes/backgrounds/town_background.png",
+	"forest": "res://assets/scenes/backgrounds/forest_background.png",
+	"river": "res://assets/scenes/backgrounds/river_background.png",
+	"mine": "res://assets/scenes/backgrounds/mine_background.png",
+}
 const RESOURCE_DEFINITIONS := {
 	"tree": preload("res://resources/data/resources/tree.tres"),
 	"stone": preload("res://resources/data/resources/stone.tres"),
@@ -20,6 +27,7 @@ const RESOURCE_DEFINITIONS := {
 }
 
 func _ready() -> void:
+	_create_background_art()
 	if not has_node("Player"):
 		var created_player := PLAYER_SCENE.instantiate()
 		created_player.name = "Player"
@@ -35,6 +43,22 @@ func _ready() -> void:
 	TimeManager.time_changed.connect(_on_time_changed)
 	QuestManager.quest_changed.connect(_on_quest_changed)
 	queue_redraw()
+
+func _create_background_art() -> void:
+	var path := str(BACKGROUND_PATHS.get(region_name, ""))
+	if path.is_empty():
+		return
+	var texture := load(path) as Texture2D
+	if texture == null:
+		return
+	var background := Sprite2D.new()
+	background.name = "SceneBackgroundArt"
+	background.texture = texture
+	background.position = MAP_SIZE * 0.5
+	background.scale = Vector2(MAP_SIZE.x / texture.get_width(), MAP_SIZE.y / texture.get_height())
+	background.z_index = -10
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(background)
 
 func _on_time_changed(_day: int, _minutes: int, _period: String) -> void:
 	queue_redraw()
@@ -159,6 +183,15 @@ func _add_quest_exit() -> void:
 	add_child(area)
 
 func _draw() -> void:
+	var has_background_art := get_node_or_null("SceneBackgroundArt") != null
+	if has_background_art:
+		# The generated scene image replaces the flat debug geometry below.
+		draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), TimeManager.get_ambient_tint())
+		var font := ThemeDB.fallback_font
+		var region_names := {"farm": "农场", "town": "小镇", "forest": "森林", "river": "河流", "mine": "矿洞"}
+		draw_string(font, Vector2(70, 80), region_names.get(region_name, region_name), HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color("#f4edd5"))
+		draw_string(font, Vector2(70, 840), "走到黄色标记处进入其他区域", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#f4edd5"))
+		return
 	var colors := {"farm": Color("#89ad68"), "town": Color("#8c9c83"), "forest": Color("#426b54"), "river": Color("#4f8eaf"), "mine": Color("#4c4b5b")}
 	draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), colors.get(region_name, Color("#6f9b63")))
 	draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), TimeManager.get_ambient_tint())

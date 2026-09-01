@@ -4,6 +4,7 @@ extends Node2D
 const MAP_SIZE := Vector2(1600, 900)
 const EXIT_SCRIPT := preload("res://scripts/world/region_exit.gd")
 const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
+const BACKGROUND_PATH := "res://assets/scenes/backgrounds/mine_background.png"
 const MINERALS := {
 	"copper_ore": preload("res://resources/data/resources/copper_ore.tres"),
 	"iron_ore": preload("res://resources/data/resources/iron_ore.tres"),
@@ -15,11 +16,25 @@ const MINERAL_WEIGHTS := {
 }
 
 func _ready() -> void:
+	_create_background_art()
 	_create_boundaries()
 	_create_exits()
 	_create_minerals()
 	TimeManager.time_changed.connect(_on_time_changed)
 	queue_redraw()
+
+func _create_background_art() -> void:
+	var texture := load(BACKGROUND_PATH) as Texture2D
+	if texture == null:
+		return
+	var background := Sprite2D.new()
+	background.name = "SceneBackgroundArt"
+	background.texture = texture
+	background.position = MAP_SIZE * 0.5
+	background.scale = Vector2(MAP_SIZE.x / texture.get_width(), MAP_SIZE.y / texture.get_height())
+	background.z_index = -10
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(background)
 
 func _on_time_changed(_day: int, _minutes: int, _period: String) -> void:
 	queue_redraw()
@@ -91,6 +106,12 @@ func _pick_mineral_id(rng: RandomNumberGenerator) -> String:
 	return "moonlight_ore"
 
 func _draw() -> void:
+	if get_node_or_null("SceneBackgroundArt") != null:
+		draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), TimeManager.get_ambient_tint())
+		var font := ThemeDB.fallback_font
+		draw_string(font, Vector2(70, 80), "矿洞 · 第 %d 层" % floor_index, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color("#eee8d0"))
+		draw_string(font, Vector2(70, 840), "左侧：返回森林    右侧：楼梯出口", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#eee8d0"))
+		return
 	draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), Color("#3f3e4c"))
 	draw_rect(Rect2(90, 100, 1420, 700), Color("#555464"))
 	draw_circle(Vector2(800, 450), 260, Color("#454452"))

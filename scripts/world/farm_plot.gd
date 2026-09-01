@@ -7,18 +7,50 @@ var state: PlotState = PlotState.NORMAL
 var crop_data: CropData
 var growth_days := 0
 var last_processed_day := 1
+var crop_art: Sprite2D
+const CROP_ART_PATHS := {
+	"wheat": {"seed": "res://assets/items/seed_wheat.png", "mature": "res://assets/items/crop_wheat_mature.png"},
+	"carrot": {"seed": "res://assets/items/seed_carrot.png", "mature": "res://assets/items/crop_carrot_mature.png"},
+	"moonberry": {"seed": "res://assets/items/seed_moonberry.png", "mature": "res://assets/items/crop_moonberry_mature.png"},
+}
 
 func _ready() -> void:
 	add_to_group("farm_plots")
+	_setup_crop_art()
 	_load_state()
 	TimeManager.day_started.connect(_on_day_started)
 	queue_redraw()
+
+func _setup_crop_art() -> void:
+	crop_art = Sprite2D.new()
+	crop_art.name = "CropArt"
+	crop_art.scale = Vector2(0.055, 0.055)
+	crop_art.position = Vector2(0, -6)
+	crop_art.z_index = 1
+	crop_art.visible = false
+	add_child(crop_art)
+
+func _update_crop_art() -> void:
+	if crop_art == null:
+		return
+	if crop_data == null or state == PlotState.TILLED or state == PlotState.NORMAL:
+		crop_art.visible = false
+		return
+	var paths: Dictionary = CROP_ART_PATHS.get(crop_data.crop_id, {})
+	var key := "mature" if state == PlotState.MATURE else "seed"
+	var texture := load(str(paths.get(key, ""))) as Texture2D
+	if texture == null:
+		crop_art.visible = false
+		return
+	crop_art.texture = texture
+	crop_art.visible = state == PlotState.MATURE or growth_days == 0
 
 func try_interact(tool_id: String, selected_crop: CropData) -> String:
 	if tool_id == "hoe":
 		if state == PlotState.NORMAL:
 			state = PlotState.TILLED
 			_save_state()
+			_update_crop_art()
 			queue_redraw()
 			return "tilled"
 		if state == PlotState.TILLED:
@@ -32,6 +64,7 @@ func try_interact(tool_id: String, selected_crop: CropData) -> String:
 			growth_days = 0
 			state = PlotState.SEEDED
 			_save_state()
+			_update_crop_art()
 			queue_redraw()
 			return "seeded"
 		if state == PlotState.MATURE:
@@ -41,11 +74,13 @@ func try_interact(tool_id: String, selected_crop: CropData) -> String:
 			growth_days = 0
 			state = PlotState.TILLED
 			_save_state()
+			_update_crop_art()
 			queue_redraw()
 			return "harvested_%s" % harvest_name
 	if tool_id == "watering_can" and state == PlotState.SEEDED:
 		state = PlotState.WATERED
 		_save_state()
+		_update_crop_art()
 		queue_redraw()
 		return "watered"
 	return "invalid"
@@ -60,6 +95,7 @@ func _process_days_until(new_day: int) -> void:
 			state = PlotState.MATURE if growth_days >= crop_data.mature_days else PlotState.SEEDED
 		last_processed_day += 1
 		_save_state()
+		_update_crop_art()
 	queue_redraw()
 
 func _save_state() -> void:
@@ -83,6 +119,7 @@ func _load_state() -> void:
 	if crop_id != "":
 		crop_data = CropCatalog.get_crop(crop_id)
 	_process_days_until(TimeManager.day)
+	_update_crop_art()
 
 func _draw() -> void:
 	if state == PlotState.NORMAL:
