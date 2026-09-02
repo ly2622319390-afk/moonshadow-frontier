@@ -52,7 +52,8 @@ const SEED_IDS := ["wheat_seed", "carrot_seed", "moonberry_seed"]
 const PERIOD_NAMES := {"morning": "早晨", "day": "白天", "dusk": "傍晚", "night": "夜晚"}
 const CATEGORY_ORDER := ["种子", "作物", "鱼", "矿物", "采集物", "工具", "任务物品"]
 const MAX_STAMINA := 100
-const FLAT_PANEL_KEYS := ["status", "date_time", "quickbar", "interaction", "quest_tracker"]
+const FLAT_PANEL_KEYS := ["status", "date_time", "quickbar", "interaction", "quest_tracker", "dialogue", "shop"]
+const TEXTURE_BUTTON_KEYS := ["quickbar_slot", "inventory_slot"]
 const UI_TEXTURES := {
 	"status": "res://assets/ui/status_bar_background.png",
 	"date_time": "res://assets/ui/adapted/date_time_panel_8x1.png",
@@ -184,6 +185,8 @@ func _apply_texture_panel(panel: PanelContainer, texture_key: String, margins: V
 		panel.add_theme_stylebox_override("panel", box)
 
 func _apply_texture_button(button: Button, texture_key: String, selected := false) -> void:
+	if texture_key not in TEXTURE_BUTTON_KEYS:
+		return
 	var path_key := texture_key
 	if selected:
 		path_key = "inventory_selected" if texture_key == "inventory_slot" else "quickbar_selected"
@@ -217,9 +220,9 @@ func _build_status_panel() -> void:
 	status_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	status_panel.offset_left = 20
 	status_panel.offset_top = 20
-	status_panel.offset_right = 370
-	status_panel.offset_bottom = 190
-	_apply_panel_style(status_panel)
+	status_panel.offset_right = 330
+	status_panel.offset_bottom = 158
+	_apply_panel_style(status_panel, Color("#35281fe8"))
 	_apply_texture_panel(status_panel, "status", Vector4(160, 70, 160, 70))
 	ui_root.add_child(status_panel)
 	var column := VBoxContainer.new()
@@ -228,6 +231,7 @@ func _build_status_panel() -> void:
 	column.add_child(_label("月影边境", 18, Color("#f4d35e")))
 	var date_time_panel := PanelContainer.new()
 	date_time_panel.name = "DateTimePanel"
+	_apply_panel_style(date_time_panel, Color("#211a16aa"))
 	_apply_texture_panel(date_time_panel, "date_time", Vector4(180, 90, 180, 90))
 	time_label = _label("", 16)
 	date_time_panel.add_child(time_label)
@@ -270,10 +274,10 @@ func _build_quest_panel() -> void:
 	quest_panel = PanelContainer.new()
 	quest_panel.name = "QuestPanel"
 	quest_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	quest_panel.offset_left = -390
+	quest_panel.offset_left = -360
 	quest_panel.offset_top = 20
 	quest_panel.offset_right = -20
-	quest_panel.offset_bottom = 122
+	quest_panel.offset_bottom = 116
 	_apply_panel_style(quest_panel, Color("#30271fd9"))
 	_apply_texture_panel(quest_panel, "quest_tracker", Vector4(150, 100, 150, 100))
 	ui_root.add_child(quest_panel)
@@ -281,7 +285,7 @@ func _build_quest_panel() -> void:
 	column.add_child(_label("当前目标", 14, Color("#f4d35e")))
 	objective_label = _label("", 13)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	objective_label.custom_minimum_size = Vector2(330, 45)
+	objective_label.custom_minimum_size = Vector2(300, 38)
 	column.add_child(objective_label)
 	quest_panel.add_child(column)
 
@@ -291,10 +295,10 @@ func _build_hotbar() -> void:
 	bar_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	bar_panel.anchor_left = 0.5
 	bar_panel.anchor_right = 0.5
-	bar_panel.offset_left = -342
-	bar_panel.offset_top = -92
-	bar_panel.offset_right = 342
-	bar_panel.offset_bottom = -18
+	bar_panel.offset_left = -360
+	bar_panel.offset_top = -104
+	bar_panel.offset_right = 360
+	bar_panel.offset_bottom = -14
 	_apply_panel_style(bar_panel, Color("#30271fe8"))
 	_apply_texture_panel(bar_panel, "quickbar", Vector4(180, 100, 180, 100))
 	ui_root.add_child(bar_panel)
@@ -305,11 +309,11 @@ func _build_hotbar() -> void:
 	for index in range(8):
 		var button := Button.new()
 		button.name = "Slot_%d" % (index + 1)
-		button.custom_minimum_size = Vector2(78, 58)
+		button.custom_minimum_size = Vector2(82, 72)
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.expand_icon = false
-		button.add_theme_constant_override("icon_max_width", 28)
+		button.add_theme_constant_override("icon_max_width", 46)
 		button.pressed.connect(_select_slot.bind(index))
 		_apply_texture_button(button, "quickbar_slot")
 		hotbar_buttons.append(button)
@@ -320,11 +324,11 @@ func _build_action_panel() -> void:
 	action_panel = PanelContainer.new()
 	action_panel.name = "ActionPanel"
 	action_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	action_panel.offset_left = -355
-	action_panel.offset_top = -250
+	action_panel.offset_left = -320
+	action_panel.offset_top = -145
 	action_panel.offset_right = -20
-	action_panel.offset_bottom = -105
-	_apply_panel_style(action_panel, Color("#30271fd9"))
+	action_panel.offset_bottom = -20
+	_apply_panel_style(action_panel, Color("#35281fe8"))
 	_apply_texture_panel(action_panel, "interaction", Vector4(360, 180, 360, 180))
 	ui_root.add_child(action_panel)
 	var column := VBoxContainer.new()
@@ -333,11 +337,11 @@ func _build_action_panel() -> void:
 	column.add_child(current_item_label)
 	interaction_label = _label("", 13)
 	interaction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	interaction_label.custom_minimum_size = Vector2(300, 38)
+	interaction_label.custom_minimum_size = Vector2(270, 32)
 	column.add_child(interaction_label)
 	message_label = _label("", 12, Color("#d8cbb2"))
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.custom_minimum_size = Vector2(300, 35)
+	message_label.custom_minimum_size = Vector2(270, 28)
 	column.add_child(message_label)
 	fishing_label = _label("", 12, Color("#b7d7dd"))
 	fishing_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -348,10 +352,10 @@ func _build_inventory_panel() -> void:
 	inventory_panel = PanelContainer.new()
 	inventory_panel.name = "InventoryPanel"
 	inventory_panel.set_anchors_preset(Control.PRESET_CENTER)
-	inventory_panel.offset_left = -430
+	inventory_panel.offset_left = -390
 	inventory_panel.offset_top = -270
-	inventory_panel.offset_right = 430
-	inventory_panel.offset_bottom = 270
+	inventory_panel.offset_right = 390
+	inventory_panel.offset_bottom = 250
 	_apply_panel_style(inventory_panel, Color("#39291efc"))
 	_apply_texture_panel(inventory_panel, "inventory", Vector4(180, 160, 180, 160))
 	inventory_panel.visible = false
@@ -471,11 +475,11 @@ func _build_shop_panel() -> void:
 	shop_panel = PanelContainer.new()
 	shop_panel.name = "ShopPanel"
 	shop_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	shop_panel.offset_left = -390
-	shop_panel.offset_top = 140
+	shop_panel.offset_left = -360
+	shop_panel.offset_top = 110
 	shop_panel.offset_right = -20
-	shop_panel.offset_bottom = 700
-	_apply_panel_style(shop_panel, Color("#30271ff5"))
+	shop_panel.offset_bottom = -20
+	_apply_panel_style(shop_panel, Color("#35281ff5"))
 	_apply_texture_panel(shop_panel, "shop", Vector4(180, 160, 180, 160))
 	shop_panel.visible = false
 	ui_root.add_child(shop_panel)
@@ -613,10 +617,10 @@ func _on_quest_changed() -> void:
 func _update_current_item() -> void:
 	if selected_slot < 5:
 		var tool: ToolData = TOOL_DEFINITIONS[selected_slot]
-		current_item_label.text = "%s  %s" % [TOOL_ICONS.get(tool.tool_id, "■"), tool.display_name]
+		current_item_label.text = tool.display_name
 	else:
 		var item_id: String = SEED_IDS[selected_slot - 5]
-		current_item_label.text = "%s  %s" % [ITEM_ICONS.get(item_id, "■"), ItemCatalog.get_item_name(item_id)]
+		current_item_label.text = ItemCatalog.get_item_name(item_id)
 
 func _update_hotbar() -> void:
 	if hotbar_buttons.is_empty():
@@ -687,11 +691,11 @@ func _refresh_inventory() -> void:
 			items.append(tool_id)
 	for item_id in items:
 		var item_button := Button.new()
-		item_button.custom_minimum_size = Vector2(108, 86)
+		item_button.custom_minimum_size = Vector2(96, 84)
 		item_button.icon = _get_item_texture(item_id)
 		item_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		item_button.expand_icon = false
-		item_button.add_theme_constant_override("icon_max_width", 40)
+		item_button.add_theme_constant_override("icon_max_width", 54)
 		item_button.text = _inventory_item_text(item_id)
 		item_button.tooltip_text = _inventory_item_tooltip(item_id)
 		item_button.pressed.connect(_assign_to_hotbar.bind(item_id))
@@ -839,7 +843,12 @@ func _update_shop_panel() -> void:
 	for tool_id in ["hoe", "axe", "pickaxe", "watering_can"]:
 		var button := shop_panel.find_child("Upgrade_" + tool_id, true, false) as Button
 		if button:
-			button.text = "升级%s · 等级 %d · 120 金币" % [ItemCatalog.get_item_name(tool_id), int(WorldManager.tool_levels.get(tool_id, 0))]
+			var tool_name: String = tool_id
+			for tool_data in TOOL_DEFINITIONS:
+				if tool_data.tool_id == tool_id:
+					tool_name = tool_data.display_name
+					break
+			button.text = "升级%s · 等级 %d · 120 金币" % [tool_name, int(WorldManager.tool_levels.get(tool_id, 0))]
 
 func _on_shop_changed() -> void:
 	_update_shop_panel()

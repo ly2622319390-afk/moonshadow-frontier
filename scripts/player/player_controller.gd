@@ -21,6 +21,9 @@ var selected_crop_index := 0
 var facing_direction := Vector2.DOWN
 var last_tool_time_msec := -100000
 var last_action_message := "1-5：选择工具 | Q：切换种子 | 空格：使用 | E：在家睡觉"
+var walk_frame := 0
+var walk_frame_elapsed := 0.0
+const WALK_FRAME_INTERVAL := 0.12
 const CHARACTER_FRAME_WIDTH := 768.0
 const CHARACTER_FRAME_HEIGHT := 1024.0
 const PLAYER_IDLE_TEXTURE: Texture2D = preload("res://assets/characters/player/player_idle_sheet.png")
@@ -37,6 +40,13 @@ func _physics_process(_delta: float) -> void:
 	).normalized()
 	if input_vector.length_squared() > 0.0:
 		facing_direction = input_vector
+		walk_frame_elapsed += _delta
+		if walk_frame_elapsed >= WALK_FRAME_INTERVAL:
+			walk_frame_elapsed = fmod(walk_frame_elapsed, WALK_FRAME_INTERVAL)
+			walk_frame = (walk_frame + 1) % 2
+	else:
+		walk_frame = 0
+		walk_frame_elapsed = 0.0
 	velocity = input_vector * MOVE_SPEED
 	move_and_slide()
 	_update_character_art(input_vector.length_squared() > 0.0)
@@ -206,10 +216,17 @@ func _update_character_art(is_moving: bool) -> void:
 	if character_art.texture != desired_texture:
 		character_art.texture = desired_texture
 	var column := 0
+	var face_left := false
 	if absf(facing_direction.x) > absf(facing_direction.y):
-		column = 3 if facing_direction.x > 0.0 else 2
+		if is_moving:
+			# Walk sheet columns 2/3 are two right-facing side poses.
+			column = 2 + walk_frame
+			face_left = facing_direction.x < 0.0
+		else:
+			column = 3 if facing_direction.x > 0.0 else 1
 	else:
-		column = 0 if facing_direction.y > 0.0 else 1
+		column = 0 if facing_direction.y > 0.0 else 2
+	character_art.flip_h = face_left
 	character_art.region_rect = Rect2(
 		column * CHARACTER_FRAME_WIDTH,
 		0,

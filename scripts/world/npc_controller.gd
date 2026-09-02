@@ -15,6 +15,9 @@ var target_position := Vector2.ZERO
 var active_region := "none"
 var character_art: Sprite2D
 var facing_direction := Vector2.DOWN
+var walk_frame := 0
+var walk_frame_elapsed := 0.0
+const WALK_FRAME_INTERVAL := 0.12
 
 func _ready() -> void:
 	add_to_group("npcs")
@@ -50,10 +53,16 @@ func _update_character_art(is_moving: bool) -> void:
 	if desired_texture != null and character_art.texture != desired_texture:
 		character_art.texture = desired_texture
 	var column := 0
+	var face_left := false
 	if absf(facing_direction.x) > absf(facing_direction.y):
-		column = 3 if facing_direction.x > 0.0 else 2
+		if is_moving:
+			column = 1 if walk_frame == 0 else 3
+			face_left = facing_direction.x < 0.0
+		else:
+			column = 1 if facing_direction.x > 0.0 else 3
 	else:
-		column = 0 if facing_direction.y > 0.0 else 1
+		column = 0 if facing_direction.y > 0.0 else 2
+	character_art.flip_h = face_left
 	character_art.region_rect = Rect2(column * CHARACTER_FRAME_WIDTH, 0, CHARACTER_FRAME_WIDTH, CHARACTER_FRAME_HEIGHT)
 
 func _process(delta: float) -> void:
@@ -65,6 +74,13 @@ func _process(delta: float) -> void:
 	var is_moving := movement_offset.length_squared() > 1.0
 	if is_moving:
 		facing_direction = movement_offset.normalized()
+		walk_frame_elapsed += delta
+		if walk_frame_elapsed >= WALK_FRAME_INTERVAL:
+			walk_frame_elapsed = fmod(walk_frame_elapsed, WALK_FRAME_INTERVAL)
+			walk_frame = (walk_frame + 1) % 2
+	else:
+		walk_frame = 0
+		walk_frame_elapsed = 0.0
 	global_position = global_position.move_toward(target_position, WALK_SPEED * delta)
 	_update_character_art(is_moving)
 	queue_redraw()
@@ -72,7 +88,7 @@ func _process(delta: float) -> void:
 func _get_region_name() -> String:
 	var node: Node = self
 	while node != null:
-		var value = node.get("region_name")
+		var value: Variant = node.get("region_name")
 		if value != null:
 			return str(value)
 		node = node.get_parent()
