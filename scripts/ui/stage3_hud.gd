@@ -66,8 +66,8 @@ const UI_TEXTURES := {
 	"quickbar_slot": "res://assets/ui/quickbar_slot.png",
 	"quickbar_selected": "res://assets/ui/quickbar_selected_frame.png",
 	"inventory": "res://assets/ui/inventory_background.png",
-	"inventory_slot": "res://assets/ui/inventory_slot.png",
-	"inventory_selected": "res://assets/ui/inventory_selected_frame.png",
+	"inventory_slot": "res://assets/ui/inventory_slot_normal_new.png",
+	"inventory_selected": "res://assets/ui/inventory_slot_selected_new.png",
 	"interaction": "res://assets/ui/interaction_prompt_panel.png",
 	"dialogue": "res://assets/ui/npc_dialogue_panel.png",
 	"quest_tracker": "res://assets/ui/quest_tracker_panel.png",
@@ -614,8 +614,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				if player and player.has_method("_try_npc_interaction"):
 					player.call("_try_npc_interaction")
 				_show_dialogue(npc)
-				get_viewport().set_input_as_handled()
-				return
+			get_viewport().set_input_as_handled()
+			return
+		if event.keycode == KEY_E and _near_bed(_get_player()):
+			var sleeper := _get_player()
+			if sleeper and sleeper.has_method("_try_sleep"):
+				sleeper.call("_try_sleep")
+			get_viewport().set_input_as_handled()
+			return
 		if event.keycode == KEY_E and _near_tool_interaction():
 			var player := _get_player()
 			if player and player.has_method("_try_tool_action"):
@@ -909,6 +915,11 @@ func _near_tool_interaction() -> bool:
 	if player == null:
 		return false
 	return _near_farm_plot(player) or _near_resource(player)
+
+func _near_bed(player: Node2D) -> bool:
+	if player == null:
+		return false
+	return str(get_tree().current_scene.get("region_name")) == "farm" and player.global_position.distance_to(Vector2(245, 255)) < 130.0
 
 func _near_farm_plot(player: Node2D) -> bool:
 	return _nearest_farm_plot(player) != null
