@@ -25,11 +25,14 @@ var last_tool_time_msec := -100000
 var last_action_message := "1-5：选择工具 | Q：切换种子 | 空格：使用 | E：在家睡觉"
 var walk_frame := 0
 var walk_frame_elapsed := 0.0
-const WALK_FRAME_INTERVAL := 0.12
-const CHARACTER_FRAME_WIDTH := 768.0
-const CHARACTER_FRAME_HEIGHT := 1024.0
+const WALK_FRAME_INTERVAL := 0.10
+const WALK_FRAME_COUNT := 4
+const WALK_FRAME_WIDTH := 256.0
+const WALK_FRAME_HEIGHT := 256.0
+const IDLE_FRAME_WIDTH := 768.0
+const IDLE_FRAME_HEIGHT := 1024.0
 const PLAYER_IDLE_TEXTURE: Texture2D = preload("res://assets/characters/player/player_idle_sheet.png")
-const PLAYER_WALK_TEXTURE: Texture2D = preload("res://assets/characters/player/player_walk_sheet.png")
+const PLAYER_WALK_TEXTURE: Texture2D = preload("res://assets/characters/player/player_walk_4x4.png")
 signal stamina_changed(current: int, maximum: int)
 
 func _physics_process(_delta: float) -> void:
@@ -45,7 +48,7 @@ func _physics_process(_delta: float) -> void:
 		walk_frame_elapsed += _delta
 		if walk_frame_elapsed >= WALK_FRAME_INTERVAL:
 			walk_frame_elapsed = fmod(walk_frame_elapsed, WALK_FRAME_INTERVAL)
-			walk_frame = (walk_frame + 1) % 2
+			walk_frame = (walk_frame + 1) % WALK_FRAME_COUNT
 	else:
 		walk_frame = 0
 		walk_frame_elapsed = 0.0
@@ -227,23 +230,33 @@ func _update_character_art(is_moving: bool) -> void:
 	var desired_texture := PLAYER_WALK_TEXTURE if is_moving else PLAYER_IDLE_TEXTURE
 	if character_art.texture != desired_texture:
 		character_art.texture = desired_texture
+	var frame_width := IDLE_FRAME_WIDTH
+	var frame_height := IDLE_FRAME_HEIGHT
 	var column := 0
-	var face_left := false
-	if absf(facing_direction.x) > absf(facing_direction.y):
-		if is_moving:
-			# Walk sheet columns 2/3 are two right-facing side poses.
-			column = 2 + walk_frame
-			face_left = facing_direction.x < 0.0
+	var row := 0
+	if is_moving:
+		frame_width = WALK_FRAME_WIDTH
+		frame_height = WALK_FRAME_HEIGHT
+		# 4x4 walk sheet rows: down, up, left, right.
+		if absf(facing_direction.x) > absf(facing_direction.y):
+			row = 2 if facing_direction.x < 0.0 else 3
 		else:
-			column = 3 if facing_direction.x > 0.0 else 1
+			row = 0 if facing_direction.y > 0.0 else 1
+		column = walk_frame
+		character_art.scale = Vector2(0.24, 0.24)
 	else:
-		column = 0 if facing_direction.y > 0.0 else 2
-	character_art.flip_h = face_left
+		# Idle sheet remains the original 4x1 layout.
+		if absf(facing_direction.x) > absf(facing_direction.y):
+			column = 3 if facing_direction.x > 0.0 else 1
+		else:
+			column = 0 if facing_direction.y > 0.0 else 2
+		character_art.scale = Vector2(0.06, 0.06)
+	character_art.flip_h = false
 	character_art.region_rect = Rect2(
-		column * CHARACTER_FRAME_WIDTH,
-		0,
-		CHARACTER_FRAME_WIDTH,
-		CHARACTER_FRAME_HEIGHT
+		column * frame_width,
+		row * frame_height,
+		frame_width,
+		frame_height
 	)
 	queue_redraw()
 
