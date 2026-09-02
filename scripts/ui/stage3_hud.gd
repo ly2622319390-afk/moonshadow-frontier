@@ -636,7 +636,7 @@ func _get_player() -> Node2D:
 func _refresh_all() -> void:
 	var player := _get_player()
 	if player:
-		if selected_slot < 5 and int(player.get("selected_tool_index")) != selected_slot:
+		if selected_slot < 5 and int(player.get("selected_tool_index")) >= 0 and int(player.get("selected_tool_index")) != selected_slot:
 			selected_slot = clampi(int(player.get("selected_tool_index")), 0, 4)
 		stamina_bar.value = int(player.get("stamina"))
 		stamina_bar.max_value = MAX_STAMINA
@@ -666,12 +666,16 @@ func _on_quest_changed() -> void:
 		objective_label.text = QuestManager.get_objective_text()
 
 func _update_current_item() -> void:
-	if selected_slot < 5:
+	if selected_slot < 5 and selected_tool_index_valid():
 		var tool: ToolData = TOOL_DEFINITIONS[selected_slot]
 		current_item_label.text = tool.display_name
 	else:
 		var item_id: String = SEED_IDS[selected_slot - 5]
 		current_item_label.text = ItemCatalog.get_item_name(item_id)
+
+func selected_tool_index_valid() -> bool:
+	var player := _get_player()
+	return player != null and int(player.get("selected_tool_index")) >= 0
 
 func _update_hotbar() -> void:
 	if hotbar_buttons.is_empty():
@@ -706,6 +710,7 @@ func _select_slot(index: int) -> void:
 	if selected_slot < 5 and player.has_method("_select_tool"):
 		player.call("_select_tool", selected_slot)
 	else:
+		player.set("selected_tool_index", -1)
 		var crop_index := selected_slot - 5
 		if crop_index >= 0 and crop_index < 3:
 			player.set("selected_crop_index", crop_index)

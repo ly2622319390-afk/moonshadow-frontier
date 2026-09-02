@@ -18,7 +18,7 @@ const CROP_DEFINITIONS: Array[CropData] = [
 ]
 
 var stamina := MAX_STAMINA
-var selected_tool_index := 0
+var selected_tool_index := 0 # -1 means a seed/item is selected
 var selected_crop_index := 0
 var facing_direction := Vector2.DOWN
 var last_tool_time_msec := -100000
@@ -112,6 +112,14 @@ func get_selected_crop_name() -> String:
 	return CROP_DEFINITIONS[selected_crop_index].display_name
 
 func _try_tool_action() -> void:
+	if selected_tool_index < 0:
+		var seed_plot := _find_target_in_group("farm_plots", 90.0)
+		if seed_plot != null and int(seed_plot.get("state")) == 1:
+			var seed_result: String = str(seed_plot.call("try_interact", "hoe", CROP_DEFINITIONS[selected_crop_index]))
+			last_action_message = "播种%s成功。" % CROP_DEFINITIONS[selected_crop_index].display_name if seed_result == "seeded" else "这里不能播种，请先锄地。"
+		else:
+			last_action_message = "请先选择工具。"
+		return
 	var tool: ToolData = TOOL_DEFINITIONS[selected_tool_index]
 	var tool_level := int(WorldManager.tool_levels.get(tool.tool_id, 0))
 	var stamina_cost := maxi(1, int(round(tool.stamina_cost * (1.0 - 0.15 * tool_level))))
