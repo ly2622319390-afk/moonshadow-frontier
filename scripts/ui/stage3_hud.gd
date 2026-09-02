@@ -366,6 +366,8 @@ func _build_action_panel() -> void:
 	action_panel.offset_bottom = -20
 	_apply_panel_style(action_panel, Color("#35281fe8"))
 	_apply_texture_panel(action_panel, "interaction", Vector4(360, 180, 360, 180))
+	action_panel.visible = false
+	action_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_root.add_child(action_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
@@ -622,12 +624,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_show_dialogue(npc)
 			get_viewport().set_input_as_handled()
 			return
-		if event.keycode == KEY_E and _near_bed(_get_player()):
-			var sleeper := _get_player()
-			if sleeper and sleeper.has_method("_try_sleep"):
-				sleeper.call("_try_sleep")
-			get_viewport().set_input_as_handled()
-			return
 		if event.keycode == KEY_E and _near_tool_interaction():
 			var player := _get_player()
 			if player and player.has_method("_try_tool_action"):
@@ -873,10 +869,6 @@ func _update_interaction_prompt() -> void:
 	elif region == "town" and player.global_position.distance_to(Vector2(275, 355)) < 170.0:
 		prompt = "按 E 进入商店"
 		anchor = Vector2(275, 355)
-		has_prompt = true
-	elif region == "farm" and player.global_position.distance_to(Vector2(245, 255)) < 130.0:
-		prompt = "按 E 睡觉，进入下一天"
-		anchor = Vector2(245, 255)
 		has_prompt = true
 	interaction_label.text = prompt
 	if has_prompt or FishingManager.is_active():
