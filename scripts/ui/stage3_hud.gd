@@ -112,6 +112,9 @@ var dialogue_name_label: Label
 var dialogue_text_label: Label
 var dialogue_portrait: TextureRect
 var dialogue_hint_label: Label
+var feedback_label: Label
+var feedback_tween: Tween
+var last_feedback_source := ""
 
 func _ready() -> void:
 	layer = 20
@@ -130,10 +133,23 @@ func _build_ui() -> void:
 	_build_quest_panel()
 	_build_hotbar()
 	_build_action_panel()
+	_build_feedback_label()
 	_build_inventory_panel()
 	_build_debug_panel()
 	_build_shop_panel()
 	_build_dialogue_panel()
+
+func _build_feedback_label() -> void:
+	feedback_label = _label("", 14, Color("#f7e7bd"))
+	feedback_label.name = "ContextFeedback"
+	feedback_label.visible = false
+	feedback_label.z_index = 50
+	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	feedback_label.add_theme_color_override("font_outline_color", Color("#2b211b"))
+	feedback_label.add_theme_constant_override("outline_size", 5)
+	feedback_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	feedback_label.size = Vector2(360, 30)
+	ui_root.add_child(feedback_label)
 
 func _connect_signals() -> void:
 	TimeManager.time_changed.connect(_on_time_changed)
@@ -621,6 +637,10 @@ func _refresh_all() -> void:
 		if action_text.begins_with("1-5："):
 			action_text = ""
 		message_label.text = action_text
+		if action_text != last_feedback_source:
+			last_feedback_source = action_text
+			if _is_failed_interaction(action_text):
+				_show_context_feedback(action_text, player.global_position)
 	gold_label.text = "金币：%d" % WorldManager.gold
 	objective_label.text = QuestManager.get_objective_text()
 	_update_current_item()
@@ -817,11 +837,7 @@ func _update_interaction_prompt() -> void:
 	var anchor := player.global_position
 	var region := str(get_tree().current_scene.get("region_name"))
 	var has_prompt := false
-	if _near_farm_plot(player):
-		prompt = "按 E 翻地、播种或浇水（空格也可使用工具）"
-		anchor = _nearest_farm_plot(player).global_position
-		has_prompt = true
-	elif _near_resource(player):
+	if _near_resource(player):
 		var resource := _nearest_resource(player)
 		if resource:
 			var data: ResourceData = resource.get("resource_data")
@@ -845,6 +861,34 @@ func _update_interaction_prompt() -> void:
 	if has_prompt or FishingManager.is_active():
 		_position_action_panel(anchor)
 	action_panel.visible = has_prompt or FishingManager.is_active()
+
+func _is_failed_interaction(message: String) -> bool:
+	if message.is_empty():
+		return false
+	if message.begins_with("已选择") or message.begins_with("使用") or message.begins_with("翻地成功") or message.begins_with("播种") or message.begins_with("浇水成功") or message.begins_with("收获") or message.begins_with("抛竿成功"):
+		return false
+	for token in ["没有", "不足", "无法", "需要", "请先", "已经用完", "不可用", "无法作用", "不是"]:
+		if message.contains(token):
+			return true
+	return false
+
+func _show_context_feedback(message: String, world_position: Vector2) -> void:
+	if feedback_label == null:
+		return
+	feedback_label.text = message
+	feedback_label.modulate = Color.WHITE
+	feedback_label.visible = true
+	var screen_position := get_viewport().get_canvas_transform() * world_position
+	var viewport_size := get_viewport().get_visible_rect().size
+	var x := clampf(screen_position.x - 150.0, 12.0, maxf(12.0, viewport_size.x - 372.0))
+	var y := clampf(screen_position.y - 58.0, 12.0, maxf(12.0, viewport_size.y - 44.0))
+	feedback_label.position = Vector2(x, y)
+	if feedback_tween != null and feedback_tween.is_valid():
+		feedback_tween.kill()
+	feedback_tween = create_tween()
+	feedback_tween.tween_interval(1.6)
+	feedback_tween.tween_property(feedback_label, "modulate:a", 0.0, 0.35)
+	feedback_tween.tween_callback(func(): feedback_label.visible = false)
 
 func _position_action_panel(anchor: Vector2) -> void:
 	if action_panel == null:
