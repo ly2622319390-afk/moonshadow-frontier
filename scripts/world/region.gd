@@ -48,19 +48,22 @@ func _ready() -> void:
 const SCENE_OBJECTS := {
 	"farm": [
 		{"name": "PlayerFarmhouse", "path": "res://assets/buildings/farmhouse.png", "position": Vector2(180, 180), "scale": 0.16, "z": 4},
-		{"name": "FarmStoneWell", "path": "res://assets/buildings/farm_well_stone.png", "position": Vector2(300, 350), "scale": 0.10, "z": 5},
+		{"name": "FarmStoneWell", "path": "", "position": Vector2(300, 350), "scale": 0.10, "z": 5},
 		{"name": "FarmScarecrow", "path": "res://assets/objects/scarecrow.png", "position": Vector2(760, 520), "scale": 0.09, "z": 4},
 		{"name": "FarmCrate", "path": "res://assets/objects/wood_crate.png", "position": Vector2(280, 420), "scale": 0.09, "z": 4},
+		{"name": "FarmWoodFence", "path": "res://assets/objects/wood_fence.png", "position": Vector2(560, 730), "scale": 0.08, "z": 4},
 	],
 	"town": [
 		{"name": "GeneralStoreArt", "path": "res://assets/buildings/general_store.png", "position": Vector2(260, 250), "scale": 0.16, "z": 4},
 		{"name": "BlacksmithArt", "path": "res://assets/buildings/blacksmith.png", "position": Vector2(760, 230), "scale": 0.16, "z": 4},
 		{"name": "HerbShopArt", "path": "res://assets/buildings/herb_shop.png", "position": Vector2(1240, 270), "scale": 0.16, "z": 4},
 		{"name": "TravelerStallArt", "path": "res://assets/buildings/traveler_stall.png", "position": Vector2(1040, 620), "scale": 0.13, "z": 4},
+		{"name": "AlchemyWorkbenchArt", "path": "res://assets/buildings/alchemy_workbench.png", "position": Vector2(1380, 620), "scale": 0.11, "z": 5},
 		{"name": "TownNoticeBoardArt", "path": "res://assets/buildings/notice_board.png", "position": Vector2(520, 560), "scale": 0.09, "z": 5},
 	],
 	"forest": [
 		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 760), "scale": 0.14, "z": 4},
+		{"name": "MineEntranceArt", "path": "res://assets/buildings/mine_entrance.png", "position": Vector2(1450, 700), "scale": 0.14, "z": 4},
 	],
 	"river": [
 		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 450), "scale": 0.14, "z": 4},
@@ -70,7 +73,10 @@ const SCENE_OBJECTS := {
 func _create_scene_objects() -> void:
 	var object_layer: Node = get_node_or_null("ObjectLayer") if has_node("ObjectLayer") else self
 	for data in SCENE_OBJECTS.get(region_name, []):
-		var texture := load(str(data.path)) as Texture2D
+		var asset_path := str(data.path)
+		if data.name == "FarmStoneWell":
+			asset_path = "res://assets/buildings/farm_well_repaired.png" if WorldManager.well_repaired else "res://assets/buildings/farm_well_stone.png"
+		var texture := load(asset_path) as Texture2D
 		if texture == null:
 			continue
 		var sprite := Sprite2D.new()
