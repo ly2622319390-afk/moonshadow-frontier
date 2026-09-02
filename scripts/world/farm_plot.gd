@@ -60,7 +60,9 @@ func _update_crop_art() -> void:
 		crop_art.visible = false
 		return
 	crop_art.texture = texture
-	crop_art.visible = growth_days == 0 and state_art != null and state_art.visible
+	# The seed/growing marker remains visible over the tilled or watered patch;
+	# the mature patch art replaces it once the crop is ready to harvest.
+	crop_art.visible = state_art != null and state_art.visible
 	if state_art != null:
 		state_art.texture = load(WATERED_ART) as Texture2D if state == PlotState.WATERED else load(SEEDED_ART) as Texture2D
 		state_art.visible = state_art.texture != null
