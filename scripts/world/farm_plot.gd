@@ -9,8 +9,10 @@ var growth_days := 0
 var last_processed_day := 1
 var crop_art: Sprite2D
 var state_art: Sprite2D
-const SOIL_WATERED_ART := "res://assets/objects/farm_soil_watered_patch.png"
-const CROP_MATURE_PATCH_ART := "res://assets/objects/farm_crop_mature_patch.png"
+const TILLED_ART := "res://assets/farming/farm_soil_tilled_cutout.png"
+const SEEDED_ART := "res://assets/farming/farm_soil_tilled_cutout.png"
+const WATERED_ART := "res://assets/objects/farm_soil_watered_patch.png"
+const MATURE_ART := "res://assets/objects/farm_crop_mature_patch.png"
 const CROP_ART_PATHS := {
 	"wheat": {"seed": "res://assets/items/seed_wheat.png", "mature": "res://assets/items/crop_wheat_mature.png"},
 	"carrot": {"seed": "res://assets/items/seed_carrot.png", "mature": "res://assets/items/crop_carrot_mature.png"},
@@ -45,10 +47,11 @@ func _setup_state_art() -> void:
 func _update_crop_art() -> void:
 	if crop_art == null:
 		return
-	if crop_data == null or state == PlotState.TILLED or state == PlotState.NORMAL:
+	if crop_data == null or state == PlotState.TILLED or state == PlotState.NORMAL or state == PlotState.MATURE:
 		crop_art.visible = false
 		if state_art != null:
-			state_art.visible = false
+			state_art.texture = load(MATURE_ART) as Texture2D if state == PlotState.MATURE else (load(TILLED_ART) as Texture2D if state == PlotState.TILLED else null)
+			state_art.visible = state_art.texture != null and state != PlotState.NORMAL
 		return
 	var paths: Dictionary = CROP_ART_PATHS.get(crop_data.crop_id, {})
 	var key := "mature" if state == PlotState.MATURE else "seed"
@@ -57,17 +60,10 @@ func _update_crop_art() -> void:
 		crop_art.visible = false
 		return
 	crop_art.texture = texture
-	crop_art.visible = (state == PlotState.MATURE or growth_days == 0) and state_art == null
+	crop_art.visible = growth_days == 0 and state_art != null and state_art.visible
 	if state_art != null:
-		state_art.visible = false
-		if state == PlotState.WATERED:
-			state_art.texture = load(SOIL_WATERED_ART) as Texture2D
-			state_art.visible = state_art.texture != null
-		elif state == PlotState.MATURE:
-			state_art.texture = load(CROP_MATURE_PATCH_ART) as Texture2D
-			state_art.visible = state_art.texture != null
-		if state_art.visible:
-			crop_art.visible = false
+		state_art.texture = load(WATERED_ART) as Texture2D if state == PlotState.WATERED else load(SEEDED_ART) as Texture2D
+		state_art.visible = state_art.texture != null
 
 func try_interact(tool_id: String, selected_crop: CropData) -> String:
 	if tool_id == "hoe":
@@ -147,6 +143,8 @@ func _load_state() -> void:
 
 func _draw() -> void:
 	if state == PlotState.NORMAL:
+		return
+	if state_art != null and state_art.visible and state_art.texture != null:
 		return
 	var base_color := Color("#9e825a")
 	if state == PlotState.WATERED:
