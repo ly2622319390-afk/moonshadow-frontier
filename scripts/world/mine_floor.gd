@@ -20,11 +20,31 @@ const MINERAL_WEIGHTS := {
 
 func _ready() -> void:
 	_create_background_art()
+	_create_scene_objects()
 	_create_boundaries()
 	_create_exits()
 	_create_minerals()
 	TimeManager.time_changed.connect(_on_time_changed)
 	queue_redraw()
+
+func _create_scene_objects() -> void:
+	var objects := [
+		{"name": "MineTorchLeft", "path": "res://assets/objects/mine/mine_torch.png", "position": Vector2(300, 180), "scale": 0.08},
+		{"name": "MineTorchRight", "path": "res://assets/objects/mine/mine_torch.png", "position": Vector2(1300, 180), "scale": 0.08},
+		{"name": "MineCart", "path": "res://assets/objects/mine/mine_cart.png", "position": Vector2(520, 700), "scale": 0.10},
+		{"name": "MineStairsArt", "path": "res://assets/objects/mine/mine_stairs.png", "position": Vector2(1450, 700 if floor_index == 1 else 180), "scale": 0.10},
+	]
+	for data in objects:
+		var texture := load(str(data.path)) as Texture2D
+		if texture == null:
+			continue
+		var sprite := Sprite2D.new()
+		sprite.name = str(data.name)
+		sprite.texture = texture
+		sprite.position = data.position
+		sprite.scale = Vector2(float(data.scale), float(data.scale))
+		sprite.z_index = 4
+		add_child(sprite)
 
 func _create_background_art() -> void:
 	var texture := load(str(BACKGROUND_PATHS.get(floor_index, BACKGROUND_PATHS[1]))) as Texture2D

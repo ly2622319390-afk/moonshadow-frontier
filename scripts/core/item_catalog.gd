@@ -19,6 +19,8 @@ const ITEMS := {
 	"river_trout": {"name": "河鳟", "category": "鱼", "price": 22},
 	"silver_scale_fish": {"name": "银鳞鱼", "category": "鱼", "price": 34},
 	"moonlight_fish": {"name": "月光鱼", "category": "鱼", "price": 58},
+	"seal_fragment": {"name": "封印碎片", "category": "任务物品", "price": 0},
+	"witch_amulet": {"name": "女巫护符", "category": "任务物品", "price": 0},
 }
 
 func get_info(item_id: String) -> Dictionary:

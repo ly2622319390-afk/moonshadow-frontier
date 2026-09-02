@@ -8,6 +8,9 @@ var crop_data: CropData
 var growth_days := 0
 var last_processed_day := 1
 var crop_art: Sprite2D
+var state_art: Sprite2D
+const SOIL_WATERED_ART := "res://assets/objects/farm_soil_watered_patch.png"
+const CROP_MATURE_PATCH_ART := "res://assets/objects/farm_crop_mature_patch.png"
 const CROP_ART_PATHS := {
 	"wheat": {"seed": "res://assets/items/seed_wheat.png", "mature": "res://assets/items/crop_wheat_mature.png"},
 	"carrot": {"seed": "res://assets/items/seed_carrot.png", "mature": "res://assets/items/crop_carrot_mature.png"},
@@ -17,6 +20,7 @@ const CROP_ART_PATHS := {
 func _ready() -> void:
 	add_to_group("farm_plots")
 	_setup_crop_art()
+	_setup_state_art()
 	_load_state()
 	TimeManager.day_started.connect(_on_day_started)
 	queue_redraw()
@@ -30,11 +34,21 @@ func _setup_crop_art() -> void:
 	crop_art.visible = false
 	add_child(crop_art)
 
+func _setup_state_art() -> void:
+	state_art = Sprite2D.new()
+	state_art.name = "StateArt"
+	state_art.scale = Vector2(0.055, 0.055)
+	state_art.z_index = 0
+	state_art.visible = false
+	add_child(state_art)
+
 func _update_crop_art() -> void:
 	if crop_art == null:
 		return
 	if crop_data == null or state == PlotState.TILLED or state == PlotState.NORMAL:
 		crop_art.visible = false
+		if state_art != null:
+			state_art.visible = false
 		return
 	var paths: Dictionary = CROP_ART_PATHS.get(crop_data.crop_id, {})
 	var key := "mature" if state == PlotState.MATURE else "seed"
@@ -43,7 +57,17 @@ func _update_crop_art() -> void:
 		crop_art.visible = false
 		return
 	crop_art.texture = texture
-	crop_art.visible = state == PlotState.MATURE or growth_days == 0
+	crop_art.visible = (state == PlotState.MATURE or growth_days == 0) and state_art == null
+	if state_art != null:
+		state_art.visible = false
+		if state == PlotState.WATERED:
+			state_art.texture = load(SOIL_WATERED_ART) as Texture2D
+			state_art.visible = state_art.texture != null
+		elif state == PlotState.MATURE:
+			state_art.texture = load(CROP_MATURE_PATCH_ART) as Texture2D
+			state_art.visible = state_art.texture != null
+		if state_art.visible:
+			crop_art.visible = false
 
 func try_interact(tool_id: String, selected_crop: CropData) -> String:
 	if tool_id == "hoe":

@@ -28,6 +28,7 @@ const RESOURCE_DEFINITIONS := {
 
 func _ready() -> void:
 	_create_background_art()
+	_create_scene_objects()
 	if not has_node("Player"):
 		var created_player := PLAYER_SCENE.instantiate()
 		created_player.name = "Player"
@@ -43,6 +44,42 @@ func _ready() -> void:
 	TimeManager.time_changed.connect(_on_time_changed)
 	QuestManager.quest_changed.connect(_on_quest_changed)
 	queue_redraw()
+
+const SCENE_OBJECTS := {
+	"farm": [
+		{"name": "PlayerFarmhouse", "path": "res://assets/buildings/farmhouse.png", "position": Vector2(180, 180), "scale": 0.16, "z": 4},
+		{"name": "FarmStoneWell", "path": "res://assets/buildings/farm_well_stone.png", "position": Vector2(300, 350), "scale": 0.10, "z": 5},
+		{"name": "FarmScarecrow", "path": "res://assets/objects/scarecrow.png", "position": Vector2(760, 520), "scale": 0.09, "z": 4},
+		{"name": "FarmCrate", "path": "res://assets/objects/wood_crate.png", "position": Vector2(280, 420), "scale": 0.09, "z": 4},
+	],
+	"town": [
+		{"name": "GeneralStoreArt", "path": "res://assets/buildings/general_store.png", "position": Vector2(260, 250), "scale": 0.16, "z": 4},
+		{"name": "BlacksmithArt", "path": "res://assets/buildings/blacksmith.png", "position": Vector2(760, 230), "scale": 0.16, "z": 4},
+		{"name": "HerbShopArt", "path": "res://assets/buildings/herb_shop.png", "position": Vector2(1240, 270), "scale": 0.16, "z": 4},
+		{"name": "TravelerStallArt", "path": "res://assets/buildings/traveler_stall.png", "position": Vector2(1040, 620), "scale": 0.13, "z": 4},
+		{"name": "TownNoticeBoardArt", "path": "res://assets/buildings/notice_board.png", "position": Vector2(520, 560), "scale": 0.09, "z": 5},
+	],
+	"forest": [
+		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 760), "scale": 0.14, "z": 4},
+	],
+	"river": [
+		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 450), "scale": 0.14, "z": 4},
+	],
+}
+
+func _create_scene_objects() -> void:
+	var object_layer: Node = get_node_or_null("ObjectLayer") if has_node("ObjectLayer") else self
+	for data in SCENE_OBJECTS.get(region_name, []):
+		var texture := load(str(data.path)) as Texture2D
+		if texture == null:
+			continue
+		var sprite := Sprite2D.new()
+		sprite.name = str(data.name)
+		sprite.texture = texture
+		sprite.position = data.position
+		sprite.scale = Vector2(float(data.scale), float(data.scale))
+		sprite.z_index = int(data.z)
+		object_layer.add_child(sprite)
 
 func _create_background_art() -> void:
 	var path := str(BACKGROUND_PATHS.get(region_name, ""))

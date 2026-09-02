@@ -6,14 +6,14 @@ var _respawn_timer: SceneTreeTimer
 var resource_art: Sprite2D
 const RESOURCE_ART_PATHS := {
 	"tree": "res://assets/objects/imported/tree.png",
-	"stone": "res://assets/items/resource_stone.png",
-	"copper_ore": "res://assets/items/resource_copper_ore.png",
-	"iron_ore": "res://assets/items/resource_iron_ore.png",
-	"moonlight_ore": "res://assets/items/resource_moonlight_ore.png",
-	"wild_berries": "res://assets/items/forage_wild_berries.png",
-	"herb": "res://assets/items/forage_common_herb.png",
-	"mushroom": "res://assets/items/forage_mushroom.png",
-	"reed": "res://assets/objects/reed.png",
+	"stone": "res://assets/objects/resources/stone_node.png",
+	"copper_ore": "res://assets/objects/resources/copper_ore_node.png",
+	"iron_ore": "res://assets/objects/resources/iron_ore_node.png",
+	"moonlight_ore": "res://assets/objects/resources/moonlight_ore_node.png",
+	"wild_berries": "res://assets/objects/resources/wild_berries_bush.png",
+	"herb": "res://assets/objects/resources/herb_plant.png",
+	"mushroom": "res://assets/objects/resources/mushroom_cluster.png",
+	"reed": "res://assets/objects/resources/reed_cluster.png",
 }
 
 func _ready() -> void:
