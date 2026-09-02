@@ -849,11 +849,6 @@ func _update_interaction_prompt() -> void:
 		prompt = "按 E 睡觉，进入下一天"
 		anchor = Vector2(245, 255)
 		has_prompt = true
-	elif _near_farm_plot(player):
-		prompt = "按 E 翻地、播种或浇水（空格也可使用工具）"
-		var plot := _nearest_farm_plot(player)
-		anchor = plot.global_position if plot else player.global_position
-		has_prompt = true
 	elif _near_resource(player):
 		var resource := _nearest_resource(player)
 		if resource:
