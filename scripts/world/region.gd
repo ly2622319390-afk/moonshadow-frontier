@@ -8,11 +8,11 @@ const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
 const FARM_PLOT_SCRIPT := preload("res://scripts/world/farm_plot.gd")
 const QUEST_STONE_SCRIPT := preload("res://scripts/world/quest_stone.gd")
 const BACKGROUND_PATHS := {
-	"farm": "res://assets/scenes/backgrounds/farm_background.png",
-	"town": "res://assets/scenes/backgrounds/town_background.png",
-	"forest": "res://assets/scenes/backgrounds/forest_background.png",
-	"river": "res://assets/scenes/backgrounds/river_background.png",
-	"mine": "res://assets/scenes/backgrounds/mine_background.png",
+	"farm": "res://assets/scenes/imported/farm_background.png",
+	"town": "res://assets/scenes/imported/town_background.png",
+	"forest": "res://assets/scenes/imported/forest_background.png",
+	"river": "res://assets/scenes/imported/river_background.png",
+	"mine": "res://assets/scenes/imported/mine_background.png",
 }
 const RESOURCE_DEFINITIONS := {
 	"tree": preload("res://resources/data/resources/tree.tres"),
@@ -113,6 +113,7 @@ func _create_exits() -> void:
 		add_child(area)
 
 func _create_resources() -> void:
+	var object_layer: Node = get_node_or_null("ObjectLayer") if has_node("ObjectLayer") else self
 	var placements: Array = {
 		"farm": [["tree", Vector2(900, 690)], ["wild_berries", Vector2(1050, 690)]],
 		"forest": [["tree", Vector2(180, 180)], ["tree", Vector2(420, 230)], ["tree", Vector2(1100, 220)], ["wild_berries", Vector2(320, 470)], ["herb", Vector2(680, 600)], ["mushroom", Vector2(980, 620)]],
@@ -125,11 +126,12 @@ func _create_resources() -> void:
 		resource_node.position = placement[1]
 		resource_node.set_script(RESOURCE_NODE_SCRIPT)
 		resource_node.resource_data = RESOURCE_DEFINITIONS[placement[0]]
-		add_child(resource_node)
+		object_layer.add_child(resource_node)
 
 func _create_farm_plots() -> void:
 	if region_name != "farm":
 		return
+	var plot_layer: Node = get_node_or_null("FarmPlotLayer") if has_node("FarmPlotLayer") else self
 	for row in range(3):
 		for column in range(4):
 			var plot := Node2D.new()
@@ -138,16 +140,17 @@ func _create_farm_plots() -> void:
 			plot.set_script(FARM_PLOT_SCRIPT)
 			plot.grid_position = Vector2i(column, row)
 			plot.z_index = 2
-			add_child(plot)
+			plot_layer.add_child(plot)
 
 func _create_npcs() -> void:
+	var npc_layer: Node = get_node_or_null("NPCLayer") if has_node("NPCLayer") else self
 	for npc_data in NPCatalog.NPCS:
 		var npc := Node2D.new()
 		npc.name = "NPC_" + npc_data.npc_id
 		npc.set_script(preload("res://scripts/world/npc_controller.gd"))
 		npc.npc_data = npc_data
 		npc.position = Vector2(200, 200)
-		add_child(npc)
+		npc_layer.add_child(npc)
 
 func _create_quest_content() -> void:
 	if region_name != "forest":

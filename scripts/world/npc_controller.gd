@@ -57,7 +57,7 @@ func _update_character_art(is_moving: bool) -> void:
 	character_art.region_rect = Rect2(column * CHARACTER_FRAME_WIDTH, 0, CHARACTER_FRAME_WIDTH, CHARACTER_FRAME_HEIGHT)
 
 func _process(delta: float) -> void:
-	if active_region != get_parent().get("region_name"):
+	if active_region != _get_region_name():
 		visible = false
 		return
 	visible = true
@@ -68,6 +68,15 @@ func _process(delta: float) -> void:
 	global_position = global_position.move_toward(target_position, WALK_SPEED * delta)
 	_update_character_art(is_moving)
 	queue_redraw()
+
+func _get_region_name() -> String:
+	var node: Node = self
+	while node != null:
+		var value = node.get("region_name")
+		if value != null:
+			return str(value)
+		node = node.get_parent()
+	return "none"
 
 func _on_time_changed(_day: int, _minutes: int, _period: String) -> void:
 	_update_schedule()

@@ -5,6 +5,7 @@ var is_available := true
 var _respawn_timer: SceneTreeTimer
 var resource_art: Sprite2D
 const RESOURCE_ART_PATHS := {
+	"tree": "res://assets/objects/imported/tree.png",
 	"stone": "res://assets/items/resource_stone.png",
 	"copper_ore": "res://assets/items/resource_copper_ore.png",
 	"iron_ore": "res://assets/items/resource_iron_ore.png",
@@ -12,6 +13,7 @@ const RESOURCE_ART_PATHS := {
 	"wild_berries": "res://assets/items/forage_wild_berries.png",
 	"herb": "res://assets/items/forage_common_herb.png",
 	"mushroom": "res://assets/items/forage_mushroom.png",
+	"reed": "res://assets/objects/reed.png",
 }
 
 func _ready() -> void:
@@ -29,7 +31,7 @@ func _setup_resource_art() -> void:
 	if resource_data == null:
 		return
 	var path := str(RESOURCE_ART_PATHS.get(resource_data.resource_id, ""))
-	if path.is_empty():
+	if path.is_empty() or not ResourceLoader.exists(path):
 		return
 	var texture := load(path) as Texture2D
 	if texture == null:

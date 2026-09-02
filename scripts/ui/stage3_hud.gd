@@ -14,24 +14,60 @@ const TOOL_DEFINITIONS: Array[ToolData] = [
 ]
 const TOOL_ICONS := {"hoe": "锄", "axe": "斧", "pickaxe": "镐", "fishing_rod": "竿", "watering_can": "壶"}
 const ITEM_ICONS := {"wheat_seed": "麦", "carrot_seed": "胡", "moonberry_seed": "月"}
+const TOOL_TEXTURES := {
+	"hoe": "res://assets/tools/tool_hoe.png",
+	"axe": "res://assets/tools/tool_axe.png",
+	"pickaxe": "res://assets/tools/tool_pickaxe.png",
+	"fishing_rod": "res://assets/tools/tool_fishing_rod.png",
+	"watering_can": "res://assets/tools/tool_watering_can.png",
+}
+const ITEM_TEXTURES := {
+	"wheat_seed": "res://assets/items/seed_wheat.png",
+	"carrot_seed": "res://assets/items/seed_carrot.png",
+	"moonberry_seed": "res://assets/items/seed_moonberry.png",
+	"wheat": "res://assets/items/crop_wheat_item.png",
+	"carrot": "res://assets/items/crop_carrot_item.png",
+	"moonberry": "res://assets/items/crop_moonberry_item.png",
+	"river_trout": "res://assets/items/fish_river_trout.png",
+	"silver_scale_fish": "res://assets/items/fish_silver_scale.png",
+	"moonlight_fish": "res://assets/items/fish_moonlight.png",
+	"wood": "res://assets/items/resource_wood.png",
+	"stone": "res://assets/items/resource_stone.png",
+	"copper_ore": "res://assets/items/resource_copper_ore.png",
+	"iron_ore": "res://assets/items/resource_iron_ore.png",
+	"moonlight_ore": "res://assets/items/resource_moonlight_ore.png",
+	"wild_berries": "res://assets/items/forage_wild_berries.png",
+	"herb": "res://assets/items/forage_common_herb.png",
+	"mushroom": "res://assets/items/forage_mushroom.png",
+	"reed": "res://assets/items/forage_moonlight_plant.png",
+}
+const NPC_PORTRAITS := {
+	"edrik": "res://assets/characters/npcs/edrik/edrik_portrait.png",
+	"mira": "res://assets/characters/npcs/mira/mira_portrait.png",
+	"rowan": "res://assets/characters/npcs/rowan/rowan_portrait.png",
+	"ivy": "res://assets/characters/npcs/ivy/ivy_portrait.png",
+}
 const TOOL_IDS := ["hoe", "axe", "pickaxe", "fishing_rod", "watering_can"]
 const SEED_IDS := ["wheat_seed", "carrot_seed", "moonberry_seed"]
 const PERIOD_NAMES := {"morning": "早晨", "day": "白天", "dusk": "傍晚", "night": "夜晚"}
 const CATEGORY_ORDER := ["种子", "作物", "鱼", "矿物", "采集物", "工具", "任务物品"]
 const MAX_STAMINA := 100
+const FLAT_PANEL_KEYS := ["status", "date_time", "quickbar", "interaction", "quest_tracker"]
 const UI_TEXTURES := {
 	"status": "res://assets/ui/status_bar_background.png",
-	"date_time": "res://assets/ui/date_time_panel.png",
-	"stamina_frame": "res://assets/ui/stamina_bar_frame.png",
-	"stamina_fill": "res://assets/ui/stamina_bar_fill.png",
+	"date_time": "res://assets/ui/adapted/date_time_panel_8x1.png",
+	"stamina_frame": "res://assets/ui/adapted/stamina_bar_frame_8x1.png",
+	"stamina_fill": "res://assets/ui/adapted/stamina_bar_fill_8x1.png",
 	"coin": "res://assets/ui/coin_gold.png",
-	"quickbar": "res://assets/ui/quickbar_background.png",
+	"quickbar": "res://assets/ui/adapted/quickbar_background_8x1.png",
 	"quickbar_slot": "res://assets/ui/quickbar_slot.png",
 	"quickbar_selected": "res://assets/ui/quickbar_selected_frame.png",
 	"inventory": "res://assets/ui/inventory_background.png",
 	"inventory_slot": "res://assets/ui/inventory_slot.png",
 	"inventory_selected": "res://assets/ui/inventory_selected_frame.png",
 	"interaction": "res://assets/ui/interaction_prompt_panel.png",
+	"dialogue": "res://assets/ui/npc_dialogue_panel.png",
+	"quest_tracker": "res://assets/ui/quest_tracker_panel.png",
 	"shop": "res://assets/ui/shop_window_background.png",
 	"button_buy": "res://assets/ui/button_buy.png",
 	"button_sell": "res://assets/ui/button_sell.png",
@@ -66,6 +102,11 @@ var debug_status_label: Label
 var shop_panel: PanelContainer
 var shop_gold_label: Label
 var shop_message_label: Label
+var dialogue_panel: PanelContainer
+var dialogue_name_label: Label
+var dialogue_text_label: Label
+var dialogue_portrait: TextureRect
+var dialogue_hint_label: Label
 
 func _ready() -> void:
 	layer = 20
@@ -87,6 +128,7 @@ func _build_ui() -> void:
 	_build_inventory_panel()
 	_build_debug_panel()
 	_build_shop_panel()
+	_build_dialogue_panel()
 
 func _connect_signals() -> void:
 	TimeManager.time_changed.connect(_on_time_changed)
@@ -133,6 +175,10 @@ func _texture_style(path: String, left: float, top: float, right: float, bottom:
 	return box
 
 func _apply_texture_panel(panel: PanelContainer, texture_key: String, margins: Vector4) -> void:
+	# Long 3:1/8:1 artwork is decorative, not a nine-patch source.
+	# Repeating its corners causes the stretched spikes seen in the HUD screenshot.
+	if texture_key in FLAT_PANEL_KEYS:
+		return
 	var box := _texture_style(str(UI_TEXTURES[texture_key]), margins.x, margins.y, margins.z, margins.w)
 	if box.texture != null:
 		panel.add_theme_stylebox_override("panel", box)
@@ -174,7 +220,7 @@ func _build_status_panel() -> void:
 	status_panel.offset_right = 370
 	status_panel.offset_bottom = 190
 	_apply_panel_style(status_panel)
-	_apply_texture_panel(status_panel, "status", Vector4(300, 180, 300, 180))
+	_apply_texture_panel(status_panel, "status", Vector4(160, 70, 160, 70))
 	ui_root.add_child(status_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
@@ -182,7 +228,7 @@ func _build_status_panel() -> void:
 	column.add_child(_label("月影边境", 18, Color("#f4d35e")))
 	var date_time_panel := PanelContainer.new()
 	date_time_panel.name = "DateTimePanel"
-	_apply_texture_panel(date_time_panel, "date_time", Vector4(250, 140, 250, 140))
+	_apply_texture_panel(date_time_panel, "date_time", Vector4(180, 90, 180, 90))
 	time_label = _label("", 16)
 	date_time_panel.add_child(time_label)
 	column.add_child(date_time_panel)
@@ -193,12 +239,18 @@ func _build_status_panel() -> void:
 	stamina_bar = ProgressBar.new()
 	stamina_bar.custom_minimum_size = Vector2(185, 18)
 	stamina_bar.show_percentage = false
-	var stamina_frame := _texture_style(str(UI_TEXTURES["stamina_frame"]), 260, 180, 260, 180)
-	var stamina_fill := _texture_style(str(UI_TEXTURES["stamina_fill"]), 260, 180, 260, 180)
-	if stamina_frame.texture != null:
-		stamina_bar.add_theme_stylebox_override("background", stamina_frame)
-	if stamina_fill.texture != null:
-		stamina_bar.add_theme_stylebox_override("fill", stamina_fill)
+	var stamina_background := StyleBoxFlat.new()
+	stamina_background.bg_color = Color("#211b18")
+	stamina_background.border_color = Color("#80613b")
+	stamina_background.set_border_width_all(2)
+	stamina_background.set_corner_radius_all(6)
+	var stamina_fill := StyleBoxFlat.new()
+	stamina_fill.bg_color = Color("#8fbf3f")
+	stamina_fill.border_color = Color("#d9e98b")
+	stamina_fill.set_border_width_all(1)
+	stamina_fill.set_corner_radius_all(5)
+	stamina_bar.add_theme_stylebox_override("background", stamina_background)
+	stamina_bar.add_theme_stylebox_override("fill", stamina_fill)
 	stamina_row.add_child(stamina_bar)
 	stamina_value = _label("100/100", 12)
 	stamina_row.add_child(stamina_value)
@@ -223,6 +275,7 @@ func _build_quest_panel() -> void:
 	quest_panel.offset_right = -20
 	quest_panel.offset_bottom = 122
 	_apply_panel_style(quest_panel, Color("#30271fd9"))
+	_apply_texture_panel(quest_panel, "quest_tracker", Vector4(150, 100, 150, 100))
 	ui_root.add_child(quest_panel)
 	var column := VBoxContainer.new()
 	column.add_child(_label("当前目标", 14, Color("#f4d35e")))
@@ -243,7 +296,7 @@ func _build_hotbar() -> void:
 	bar_panel.offset_right = 342
 	bar_panel.offset_bottom = -18
 	_apply_panel_style(bar_panel, Color("#30271fe8"))
-	_apply_texture_panel(bar_panel, "quickbar", Vector4(250, 220, 250, 220))
+	_apply_texture_panel(bar_panel, "quickbar", Vector4(180, 100, 180, 100))
 	ui_root.add_child(bar_panel)
 	hotbar = HBoxContainer.new()
 	hotbar.name = "Hotbar"
@@ -254,6 +307,9 @@ func _build_hotbar() -> void:
 		button.name = "Slot_%d" % (index + 1)
 		button.custom_minimum_size = Vector2(78, 58)
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.expand_icon = false
+		button.add_theme_constant_override("icon_max_width", 28)
 		button.pressed.connect(_select_slot.bind(index))
 		_apply_texture_button(button, "quickbar_slot")
 		hotbar_buttons.append(button)
@@ -269,7 +325,7 @@ func _build_action_panel() -> void:
 	action_panel.offset_right = -20
 	action_panel.offset_bottom = -105
 	_apply_panel_style(action_panel, Color("#30271fd9"))
-	_apply_texture_panel(action_panel, "interaction", Vector4(250, 150, 250, 150))
+	_apply_texture_panel(action_panel, "interaction", Vector4(360, 180, 360, 180))
 	ui_root.add_child(action_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
@@ -296,7 +352,7 @@ func _build_inventory_panel() -> void:
 	inventory_panel.offset_top = -270
 	inventory_panel.offset_right = 430
 	inventory_panel.offset_bottom = 270
-	_apply_panel_style(inventory_panel, Color("#30271ff5"))
+	_apply_panel_style(inventory_panel, Color("#39291efc"))
 	_apply_texture_panel(inventory_panel, "inventory", Vector4(180, 160, 180, 160))
 	inventory_panel.visible = false
 	ui_root.add_child(inventory_panel)
@@ -330,6 +386,42 @@ func _build_inventory_panel() -> void:
 	var hint := _label("点击物品可放入快捷栏；悬停查看说明。", 12, Color("#bcae94"))
 	column.add_child(hint)
 	inventory_panel.add_child(column)
+
+func _build_dialogue_panel() -> void:
+	dialogue_panel = PanelContainer.new()
+	dialogue_panel.name = "NPCDialoguePanel"
+	dialogue_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	dialogue_panel.anchor_left = 0.5
+	dialogue_panel.anchor_right = 0.5
+	dialogue_panel.offset_left = -500
+	dialogue_panel.offset_top = -210
+	dialogue_panel.offset_right = 500
+	dialogue_panel.offset_bottom = -28
+	dialogue_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_apply_panel_style(dialogue_panel, Color("#39291efc"))
+	_apply_texture_panel(dialogue_panel, "dialogue", Vector4(360, 160, 360, 160))
+	dialogue_panel.visible = false
+	ui_root.add_child(dialogue_panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	dialogue_portrait = TextureRect.new()
+	dialogue_portrait.name = "Portrait"
+	dialogue_portrait.custom_minimum_size = Vector2(132, 132)
+	dialogue_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dialogue_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(dialogue_portrait)
+	var text_column := VBoxContainer.new()
+	text_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dialogue_name_label = _label("", 20, Color("#f4d35e"))
+	text_column.add_child(dialogue_name_label)
+	dialogue_text_label = _label("", 17, Color("#f5ead2"))
+	dialogue_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue_text_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	text_column.add_child(dialogue_text_label)
+	dialogue_hint_label = _label("按 E 或 Esc 关闭", 12, Color("#bcae94"))
+	text_column.add_child(dialogue_hint_label)
+	row.add_child(text_column)
+	dialogue_panel.add_child(row)
 
 func _build_debug_panel() -> void:
 	debug_panel = PanelContainer.new()
@@ -456,6 +548,10 @@ func _process(_delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
+		if dialogue_panel != null and dialogue_panel.visible and (event.keycode == KEY_E or event.keycode == KEY_ESCAPE):
+			dialogue_panel.visible = false
+			get_viewport().set_input_as_handled()
+			return
 		if event.keycode == KEY_F3 and development_mode:
 			debug_panel.visible = not debug_panel.visible
 			get_viewport().set_input_as_handled()
@@ -468,6 +564,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			_select_slot(event.keycode - KEY_1)
 			get_viewport().set_input_as_handled()
 			return
+		if event.keycode == KEY_E and _near_npc(_get_player()):
+			var npc := _nearest_npc(_get_player())
+			if npc:
+				var player := _get_player()
+				if player and player.has_method("_try_npc_interaction"):
+					player.call("_try_npc_interaction")
+				_show_dialogue(npc)
+				get_viewport().set_input_as_handled()
+				return
 		if event.keycode == KEY_E and _near_tool_interaction():
 			var player := _get_player()
 			if player and player.has_method("_try_tool_action"):
@@ -487,7 +592,7 @@ func _refresh_all() -> void:
 		stamina_value.text = "%d/%d" % [int(player.get("stamina")), MAX_STAMINA]
 		var action_text := str(player.get("last_action_message"))
 		if action_text.begins_with("1-5："):
-			action_text = "数字键 1-8 选择 · E 交互 · 空格使用工具"
+			action_text = ""
 		message_label.text = action_text
 	gold_label.text = "金币：%d" % WorldManager.gold
 	objective_label.text = QuestManager.get_objective_text()
@@ -518,13 +623,17 @@ func _update_hotbar() -> void:
 		return
 	for index in range(hotbar_buttons.size()):
 		var button := hotbar_buttons[index]
-		var text := "%d\n" % (index + 1)
+		var text := "%d" % (index + 1)
 		if index < 5:
 			var tool: ToolData = TOOL_DEFINITIONS[index]
-			text += "%s %s" % [TOOL_ICONS.get(tool.tool_id, "■"), tool.display_name]
+			button.icon = _get_item_texture(tool.tool_id)
+			if button.icon == null:
+				text += "\n" + str(TOOL_ICONS.get(tool.tool_id, ""))
 		else:
 			var item_id: String = SEED_IDS[index - 5]
-			text += "%s %s" % [ITEM_ICONS.get(item_id, "■"), ItemCatalog.get_item_name(item_id)]
+			button.icon = _get_item_texture(item_id)
+			if button.icon == null:
+				text += "\n" + str(ITEM_ICONS.get(item_id, ""))
 			text += "\nx%d" % int(WorldManager.inventory.get(item_id, 0))
 		button.text = text
 		button.tooltip_text = _slot_tooltip(index)
@@ -579,6 +688,10 @@ func _refresh_inventory() -> void:
 	for item_id in items:
 		var item_button := Button.new()
 		item_button.custom_minimum_size = Vector2(108, 86)
+		item_button.icon = _get_item_texture(item_id)
+		item_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		item_button.expand_icon = false
+		item_button.add_theme_constant_override("icon_max_width", 40)
 		item_button.text = _inventory_item_text(item_id)
 		item_button.tooltip_text = _inventory_item_tooltip(item_id)
 		item_button.pressed.connect(_assign_to_hotbar.bind(item_id))
@@ -588,12 +701,18 @@ func _refresh_inventory() -> void:
 
 func _inventory_item_text(item_id: String) -> String:
 	var info := ItemCatalog.get_info(item_id)
-	var icon: String = str(TOOL_ICONS.get(item_id, ITEM_ICONS.get(item_id, "◆")))
 	var count := int(WorldManager.inventory.get(item_id, 0))
 	if item_id in TOOL_IDS:
 		count = 1
 	var display_name := TOOL_DEFINITIONS[TOOL_IDS.find(item_id)].display_name if item_id in TOOL_IDS else str(info.get("name", item_id))
-	return "%s\n%s\nx%d" % [icon, display_name, count]
+	var icon_fallback: String = str(TOOL_ICONS.get(item_id, ITEM_ICONS.get(item_id, ""))) if _get_item_texture(item_id) == null else ""
+	return "%s%s\nx%d" % [icon_fallback, display_name, count]
+
+func _get_item_texture(item_id: String) -> Texture2D:
+	var path := str(TOOL_TEXTURES.get(item_id, ITEM_TEXTURES.get(item_id, "")))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
 
 func _inventory_item_tooltip(item_id: String) -> String:
 	var info := ItemCatalog.get_info(item_id)
@@ -617,23 +736,30 @@ func _update_interaction_prompt() -> void:
 	var player := _get_player()
 	if player == null:
 		return
-	var prompt := "靠近目标后会显示交互提示。"
+	var prompt := ""
 	var region := str(get_tree().current_scene.get("region_name"))
+	var has_prompt := false
 	if _near_farm_plot(player):
 		prompt = "按 E 翻地、播种或浇水（空格也可使用工具）"
+		has_prompt = true
 	elif _near_resource(player):
 		var resource := _nearest_resource(player)
 		if resource:
 			var data: ResourceData = resource.get("resource_data")
 			var tool_names := {"axe": "斧头", "pickaxe": "镐子", "hoe": "锄头", "fishing_rod": "鱼竿"}
 			prompt = "按 E 采集%s · 需要%s（空格也可使用工具）" % [data.display_name, tool_names.get(data.required_tool_id, data.required_tool_id)]
+			has_prompt = true
 	elif _near_npc(player):
 		prompt = "按 E 与 NPC 交互"
+		has_prompt = true
 	elif region == "town" and player.global_position.distance_to(Vector2(275, 355)) < 170.0:
 		prompt = "按 E 进入商店"
+		has_prompt = true
 	elif region == "farm" and player.global_position.distance_to(Vector2(245, 255)) < 130.0:
 		prompt = "按 E 睡觉，进入下一天"
+		has_prompt = true
 	interaction_label.text = prompt
+	action_panel.visible = has_prompt or FishingManager.is_active()
 
 func _near_tool_interaction() -> bool:
 	var player := _get_player()
@@ -663,10 +789,31 @@ func _nearest_resource(player: Node2D) -> Node:
 	return nearest
 
 func _near_npc(player: Node2D) -> bool:
+	return _nearest_npc(player) != null
+
+func _nearest_npc(player: Node2D) -> Node:
+	if player == null:
+		return null
+	var nearest: Node = null
+	var nearest_distance := 65.0
 	for npc in get_tree().get_nodes_in_group("npcs"):
-		if is_instance_valid(npc) and npc.visible and player.global_position.distance_to(npc.global_position) < 65.0:
-			return true
-	return false
+		if not is_instance_valid(npc) or not npc.visible:
+			continue
+		var distance := player.global_position.distance_to(npc.global_position)
+		if distance < nearest_distance:
+			nearest = npc
+			nearest_distance = distance
+	return nearest
+
+func _show_dialogue(npc: Node) -> void:
+	if dialogue_panel == null or npc == null:
+		return
+	var npc_id := str(npc.npc_data.npc_id) if npc.get("npc_data") != null else ""
+	dialogue_name_label.text = npc.get_display_name()
+	dialogue_text_label.text = npc.get_dialogue()
+	var portrait_path := str(NPC_PORTRAITS.get(npc_id, ""))
+	dialogue_portrait.texture = load(portrait_path) as Texture2D if not portrait_path.is_empty() else null
+	dialogue_panel.visible = true
 
 func _update_fishing_label() -> void:
 	if FishingManager.state == FishingManager.FishingState.IDLE:

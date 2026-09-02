@@ -4,7 +4,10 @@ extends Node2D
 const MAP_SIZE := Vector2(1600, 900)
 const EXIT_SCRIPT := preload("res://scripts/world/region_exit.gd")
 const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
-const BACKGROUND_PATH := "res://assets/scenes/backgrounds/mine_background.png"
+const BACKGROUND_PATHS := {
+	1: "res://assets/scenes/imported/mine_background.png",
+	2: "res://assets/scenes/imported_extra/mine_floor_2.png",
+}
 const MINERALS := {
 	"copper_ore": preload("res://resources/data/resources/copper_ore.tres"),
 	"iron_ore": preload("res://resources/data/resources/iron_ore.tres"),
@@ -24,7 +27,7 @@ func _ready() -> void:
 	queue_redraw()
 
 func _create_background_art() -> void:
-	var texture := load(BACKGROUND_PATH) as Texture2D
+	var texture := load(str(BACKGROUND_PATHS.get(floor_index, BACKGROUND_PATHS[1]))) as Texture2D
 	if texture == null:
 		return
 	var background := Sprite2D.new()
