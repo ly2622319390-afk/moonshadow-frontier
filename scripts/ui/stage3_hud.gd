@@ -87,6 +87,8 @@ var stamina_value: Label
 var gold_label: Label
 var objective_label: Label
 var quest_panel: PanelContainer
+var quest_collapsed := false
+var quest_toggle_button: Button
 var hotbar: HBoxContainer
 var hotbar_buttons: Array[Button] = []
 var selected_slot := 0
@@ -284,12 +286,29 @@ func _build_quest_panel() -> void:
 	_apply_texture_panel(quest_panel, "quest_tracker", Vector4(150, 100, 150, 100))
 	ui_root.add_child(quest_panel)
 	var column := VBoxContainer.new()
-	column.add_child(_label("当前目标", 14, Color("#f4d35e")))
+	var title_row := HBoxContainer.new()
+	title_row.add_child(_label("当前目标", 14, Color("#f4d35e")))
+	quest_toggle_button = Button.new()
+	quest_toggle_button.name = "QuestToggle"
+	quest_toggle_button.text = "收起"
+	quest_toggle_button.custom_minimum_size = Vector2(58, 26)
+	quest_toggle_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	quest_toggle_button.pressed.connect(_toggle_quest_panel)
+	_apply_button_style(quest_toggle_button)
+	title_row.add_child(quest_toggle_button)
+	column.add_child(title_row)
 	objective_label = _label("", 13)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	objective_label.custom_minimum_size = Vector2(300, 38)
 	column.add_child(objective_label)
 	quest_panel.add_child(column)
+
+func _toggle_quest_panel() -> void:
+	quest_collapsed = not quest_collapsed
+	objective_label.visible = not quest_collapsed
+	if quest_toggle_button:
+		quest_toggle_button.text = "展开" if quest_collapsed else "收起"
+	quest_panel.offset_bottom = 64 if quest_collapsed else 116
 
 func _build_hotbar() -> void:
 	var bar_panel := PanelContainer.new()
@@ -335,14 +354,17 @@ func _build_action_panel() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
 	current_item_label = _label("", 16, Color("#f4d35e"))
+	# The selected tool is already identified by the highlighted hotbar slot.
+	# Context prompts should only describe the nearby target (bed, NPC, resource, etc.).
+	current_item_label.visible = false
 	column.add_child(current_item_label)
 	interaction_label = _label("", 13)
 	interaction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	interaction_label.custom_minimum_size = Vector2(270, 32)
+	interaction_label.custom_minimum_size = Vector2(210, 30)
 	column.add_child(interaction_label)
 	message_label = _label("", 12, Color("#d8cbb2"))
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.custom_minimum_size = Vector2(270, 28)
+	message_label.custom_minimum_size = Vector2(210, 24)
 	column.add_child(message_label)
 	fishing_label = _label("", 12, Color("#b7d7dd"))
 	fishing_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -792,10 +814,12 @@ func _update_interaction_prompt() -> void:
 	if player == null:
 		return
 	var prompt := ""
+	var anchor := player.global_position
 	var region := str(get_tree().current_scene.get("region_name"))
 	var has_prompt := false
 	if _near_farm_plot(player):
 		prompt = "按 E 翻地、播种或浇水（空格也可使用工具）"
+		anchor = _nearest_farm_plot(player).global_position
 		has_prompt = true
 	elif _near_resource(player):
 		var resource := _nearest_resource(player)
@@ -803,18 +827,38 @@ func _update_interaction_prompt() -> void:
 			var data: ResourceData = resource.get("resource_data")
 			var tool_names := {"axe": "斧头", "pickaxe": "镐子", "hoe": "锄头", "fishing_rod": "鱼竿"}
 			prompt = "按 E 采集%s · 需要%s（空格也可使用工具）" % [data.display_name, tool_names.get(data.required_tool_id, data.required_tool_id)]
+			anchor = resource.global_position
 			has_prompt = true
 	elif _near_npc(player):
 		prompt = "按 E 与 NPC 交互"
+		anchor = _nearest_npc(player).global_position
 		has_prompt = true
 	elif region == "town" and player.global_position.distance_to(Vector2(275, 355)) < 170.0:
 		prompt = "按 E 进入商店"
+		anchor = Vector2(275, 355)
 		has_prompt = true
 	elif region == "farm" and player.global_position.distance_to(Vector2(245, 255)) < 130.0:
 		prompt = "按 E 睡觉，进入下一天"
+		anchor = Vector2(245, 255)
 		has_prompt = true
 	interaction_label.text = prompt
+	if has_prompt or FishingManager.is_active():
+		_position_action_panel(anchor)
 	action_panel.visible = has_prompt or FishingManager.is_active()
+
+func _position_action_panel(anchor: Vector2) -> void:
+	if action_panel == null:
+		return
+	action_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	var screen_position := get_viewport().get_canvas_transform() * anchor
+	var viewport_size := get_viewport().get_visible_rect().size
+	var panel_size := Vector2(238, 78)
+	var x := clampf(screen_position.x + 22.0, 12.0, maxf(12.0, viewport_size.x - panel_size.x - 12.0))
+	var y := clampf(screen_position.y - panel_size.y - 18.0, 12.0, maxf(12.0, viewport_size.y - panel_size.y - 12.0))
+	action_panel.offset_left = x
+	action_panel.offset_top = y
+	action_panel.offset_right = x + panel_size.x
+	action_panel.offset_bottom = y + panel_size.y
 
 func _near_tool_interaction() -> bool:
 	var player := _get_player()
@@ -823,10 +867,19 @@ func _near_tool_interaction() -> bool:
 	return _near_farm_plot(player) or _near_resource(player)
 
 func _near_farm_plot(player: Node2D) -> bool:
+	return _nearest_farm_plot(player) != null
+
+func _nearest_farm_plot(player: Node2D) -> Node:
+	var nearest: Node = null
+	var nearest_distance := 100.0
 	for plot in get_tree().get_nodes_in_group("farm_plots"):
-		if is_instance_valid(plot) and player.global_position.distance_to(plot.global_position) < 100.0:
-			return true
-	return false
+		if not is_instance_valid(plot):
+			continue
+		var distance := player.global_position.distance_to(plot.global_position)
+		if distance < nearest_distance:
+			nearest = plot
+			nearest_distance = distance
+	return nearest
 
 func _near_resource(player: Node2D) -> bool:
 	return _nearest_resource(player) != null
