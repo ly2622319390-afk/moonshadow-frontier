@@ -5,8 +5,8 @@ const MAP_SIZE := Vector2(1600, 900)
 const EXIT_SCRIPT := preload("res://scripts/world/region_exit.gd")
 const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
 const BACKGROUND_PATHS := {
-	1: "res://assets/scenes/imported/mine_background.png",
-	2: "res://assets/scenes/imported_extra/mine_floor_2.png",
+	1: "res://assets/scenes/imported/mine_background_clean.png",
+	2: "res://assets/scenes/imported_extra/mine_floor_2_clean.png",
 }
 const MINERALS := {
 	"copper_ore": preload("res://resources/data/resources/copper_ore.tres"),

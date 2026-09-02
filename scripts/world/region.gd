@@ -8,11 +8,11 @@ const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
 const FARM_PLOT_SCRIPT := preload("res://scripts/world/farm_plot.gd")
 const QUEST_STONE_SCRIPT := preload("res://scripts/world/quest_stone.gd")
 const BACKGROUND_PATHS := {
-	"farm": "res://assets/scenes/imported/farm_background.png",
-	"town": "res://assets/scenes/imported/town_background.png",
-	"forest": "res://assets/scenes/imported/forest_background.png",
-	"river": "res://assets/scenes/imported/river_background.png",
-	"mine": "res://assets/scenes/imported/mine_background.png",
+	"farm": "res://assets/scenes/imported/farm_background_clean.png",
+	"town": "res://assets/scenes/imported/town_background_clean.png",
+	"forest": "res://assets/scenes/imported/forest_background_clean.png",
+	"river": "res://assets/scenes/imported/river_background_clean.png",
+	"mine": "res://assets/scenes/imported/mine_background_clean.png",
 }
 const RESOURCE_DEFINITIONS := {
 	"tree": preload("res://resources/data/resources/tree.tres"),
@@ -28,6 +28,7 @@ const RESOURCE_DEFINITIONS := {
 
 func _ready() -> void:
 	_create_background_art()
+	_create_scene_objects()
 	if not has_node("Player"):
 		var created_player := PLAYER_SCENE.instantiate()
 		created_player.name = "Player"
@@ -46,19 +47,19 @@ func _ready() -> void:
 
 const SCENE_OBJECTS := {
 	"farm": [
-		{"name": "PlayerFarmhouse", "path": "res://assets/buildings/farmhouse.png", "position": Vector2(180, 180), "scale": 0.16, "z": 4},
-		{"name": "FarmStoneWell", "path": "", "position": Vector2(300, 350), "scale": 0.10, "z": 5},
-		{"name": "FarmScarecrow", "path": "res://assets/objects/scarecrow.png", "position": Vector2(760, 520), "scale": 0.09, "z": 4},
-		{"name": "FarmCrate", "path": "res://assets/objects/wood_crate.png", "position": Vector2(280, 420), "scale": 0.09, "z": 4},
-		{"name": "FarmWoodFence", "path": "res://assets/objects/wood_fence.png", "position": Vector2(560, 730), "scale": 0.08, "z": 4},
+		{"name": "PlayerFarmhouse", "path": "res://assets/buildings/farmhouse.png", "position": Vector2(245, 255), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(180, 130)},
+		{"name": "FarmStoneWell", "path": "", "position": Vector2(300, 400), "scale": 0.10, "z": 5, "solid": true, "collision": Vector2(80, 70)},
+		{"name": "FarmScarecrow", "path": "res://assets/objects/scarecrow.png", "position": Vector2(760, 520), "scale": 0.09, "z": 4, "solid": true, "collision": Vector2(40, 40)},
+		{"name": "FarmCrate", "path": "res://assets/objects/wood_crate.png", "position": Vector2(480, 420), "scale": 0.09, "z": 4, "solid": true, "collision": Vector2(52, 52)},
+		{"name": "FarmWoodFence", "path": "res://assets/objects/wood_fence.png", "position": Vector2(560, 730), "scale": 0.08, "z": 4, "solid": true, "collision": Vector2(240, 48)},
 	],
 	"town": [
-		{"name": "GeneralStoreArt", "path": "res://assets/buildings/general_store.png", "position": Vector2(260, 250), "scale": 0.16, "z": 4},
-		{"name": "BlacksmithArt", "path": "res://assets/buildings/blacksmith.png", "position": Vector2(760, 230), "scale": 0.16, "z": 4},
-		{"name": "HerbShopArt", "path": "res://assets/buildings/herb_shop.png", "position": Vector2(1240, 270), "scale": 0.16, "z": 4},
-		{"name": "TravelerStallArt", "path": "res://assets/buildings/traveler_stall.png", "position": Vector2(1040, 620), "scale": 0.13, "z": 4},
-		{"name": "AlchemyWorkbenchArt", "path": "res://assets/buildings/alchemy_workbench.png", "position": Vector2(1380, 620), "scale": 0.11, "z": 5},
-		{"name": "TownNoticeBoardArt", "path": "res://assets/buildings/notice_board.png", "position": Vector2(520, 560), "scale": 0.09, "z": 5},
+		{"name": "GeneralStoreArt", "path": "res://assets/buildings/general_store.png", "position": Vector2(275, 355), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125)},
+		{"name": "BlacksmithArt", "path": "res://assets/buildings/blacksmith.png", "position": Vector2(760, 300), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125)},
+		{"name": "HerbShopArt", "path": "res://assets/buildings/herb_shop.png", "position": Vector2(1240, 355), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125)},
+		{"name": "TravelerStallArt", "path": "res://assets/buildings/traveler_stall.png", "position": Vector2(1040, 620), "scale": 0.13, "z": 4, "solid": true, "collision": Vector2(150, 90)},
+		{"name": "AlchemyWorkbenchArt", "path": "res://assets/buildings/alchemy_workbench.png", "position": Vector2(1380, 620), "scale": 0.11, "z": 5, "solid": true, "collision": Vector2(120, 70)},
+		{"name": "TownNoticeBoardArt", "path": "res://assets/buildings/notice_board.png", "position": Vector2(520, 560), "scale": 0.09, "z": 5, "solid": true, "collision": Vector2(45, 45)},
 	],
 	"forest": [
 		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 760), "scale": 0.14, "z": 4},
@@ -78,13 +79,25 @@ func _create_scene_objects() -> void:
 		var texture := load(asset_path) as Texture2D
 		if texture == null:
 			continue
+		var parent: Node = object_layer
+		if bool(data.get("solid", false)):
+			var body := StaticBody2D.new()
+			body.name = str(data.name)
+			body.position = data.position
+			object_layer.add_child(body)
+			var collision := CollisionShape2D.new()
+			var shape := RectangleShape2D.new()
+			shape.size = data.collision
+			collision.shape = shape
+			body.add_child(collision)
+			parent = body
 		var sprite := Sprite2D.new()
-		sprite.name = str(data.name)
+		sprite.name = "Art"
 		sprite.texture = texture
-		sprite.position = data.position
+		sprite.position = Vector2.ZERO if parent != object_layer else data.position
 		sprite.scale = Vector2(float(data.scale), float(data.scale))
 		sprite.z_index = int(data.z)
-		object_layer.add_child(sprite)
+		parent.add_child(sprite)
 
 func _create_background_art() -> void:
 	var path := str(BACKGROUND_PATHS.get(region_name, ""))
@@ -178,10 +191,11 @@ func _create_farm_plots() -> void:
 	# available; only water, the farmhouse footprint and fixed props are excluded.
 	const tile_size := 48
 	var blocked := [
-		Rect2(150, 220, 390, 360), # farmhouse and porch
-		Rect2(610, 105, 285, 175), # pond
-		Rect2(1360, 470, 150, 210), # stone well
-		Rect2(390, 610, 190, 180), # small shed / crate area
+		Rect2(150, 155, 250, 220), # farmhouse and porch
+		Rect2(255, 360, 95, 95), # stone well
+		Rect2(730, 490, 70, 70), # scarecrow
+		Rect2(450, 390, 70, 70), # crate
+		Rect2(430, 700, 260, 80), # fence
 	]
 	for row in range(1, 18):
 		for column in range(1, 33):

@@ -2,7 +2,7 @@ extends Node2D
 
 const MAP_SIZE := Vector2(1600, 900)
 const EXIT_SCRIPT := preload("res://scripts/world/region_exit.gd")
-const BACKGROUND_ART := "res://assets/scenes/imported_extra/witch_sanctum_background.png"
+const BACKGROUND_ART := "res://assets/scenes/imported_extra/witch_sanctum_background_clean.png"
 const ENTRANCE_ART := "res://assets/objects/witch_sanctum_entrance.png"
 const ROOTS_ART := "res://assets/objects/witch_shrine_foreground_roots.png"
 
