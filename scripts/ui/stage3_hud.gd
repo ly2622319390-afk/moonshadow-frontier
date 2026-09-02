@@ -854,6 +854,11 @@ func _update_interaction_prompt() -> void:
 		prompt = "按 E 睡觉，进入下一天"
 		anchor = Vector2(245, 255)
 		has_prompt = true
+	elif _near_farm_plot(player):
+		var plot := _nearest_farm_plot(player)
+		anchor = plot.global_position if plot else player.global_position
+		prompt = _farm_plot_prompt(plot)
+		has_prompt = true
 	elif _near_resource(player):
 		var resource := _nearest_resource(player)
 		if resource:
@@ -874,6 +879,23 @@ func _update_interaction_prompt() -> void:
 	if has_prompt or FishingManager.is_active():
 		_position_action_panel(anchor)
 	action_panel.visible = has_prompt or FishingManager.is_active()
+
+func _farm_plot_prompt(plot: Node) -> String:
+	if plot == null:
+		return "农田"
+	var state := int(plot.get("state"))
+	var crop: CropData = plot.get("crop_data")
+	if state == 0:
+		return "普通土地 · 选中锄头可翻地"
+	if state == 1:
+		return "已耕地 · 选中种子可播种"
+	if state == 2:
+		return "%s · 已浇水 · 成长中" % (crop.display_name if crop else "已播种作物")
+	if state == 3:
+		return "%s · 已播种 · 需要浇水" % (crop.display_name if crop else "作物")
+	if state == 4:
+		return "%s · 已成熟 · 选中锄头收获" % (crop.display_name if crop else "作物")
+	return "农田"
 
 func _is_failed_interaction(message: String) -> bool:
 	if message.is_empty():
@@ -909,7 +931,7 @@ func _position_action_panel(anchor: Vector2) -> void:
 	action_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	var screen_position := get_viewport().get_canvas_transform() * anchor
 	var viewport_size := get_viewport().get_visible_rect().size
-	var panel_size := Vector2(238, 78)
+	var panel_size := Vector2(220, 60)
 	var x := clampf(screen_position.x + 22.0, 12.0, maxf(12.0, viewport_size.x - panel_size.x - 12.0))
 	var y := clampf(screen_position.y - panel_size.y - 18.0, 12.0, maxf(12.0, viewport_size.y - panel_size.y - 12.0))
 	action_panel.offset_left = x

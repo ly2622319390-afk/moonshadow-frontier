@@ -47,25 +47,21 @@ func _setup_state_art() -> void:
 func _update_crop_art() -> void:
 	if crop_art == null:
 		return
-	if crop_data == null or state == PlotState.TILLED or state == PlotState.NORMAL or state == PlotState.MATURE:
-		crop_art.visible = false
-		if state_art != null:
-			state_art.texture = load(MATURE_ART) as Texture2D if state == PlotState.MATURE else (load(TILLED_ART) as Texture2D if state == PlotState.TILLED else null)
-			state_art.visible = state_art.texture != null and state != PlotState.NORMAL
+	# Crop visuals are represented by the four unified ground states. Seed icons
+	# are inventory-only and are never drawn over a plot.
+	crop_art.visible = false
+	if state_art == null:
 		return
-	var paths: Dictionary = CROP_ART_PATHS.get(crop_data.crop_id, {})
-	var key := "mature" if state == PlotState.MATURE else "seed"
-	var texture := load(str(paths.get(key, ""))) as Texture2D
-	if texture == null:
-		crop_art.visible = false
-		return
-	crop_art.texture = texture
-	# The seed/growing marker remains visible over the tilled or watered patch;
-	# the mature patch art replaces it once the crop is ready to harvest.
-	crop_art.visible = state_art != null and state_art.visible
-	if state_art != null:
-		state_art.texture = load(WATERED_ART) as Texture2D if state == PlotState.WATERED else load(SEEDED_ART) as Texture2D
-		state_art.visible = state_art.texture != null
+	var path := ""
+	match state:
+		PlotState.TILLED, PlotState.SEEDED:
+			path = TILLED_ART
+		PlotState.WATERED:
+			path = WATERED_ART
+		PlotState.MATURE:
+			path = MATURE_ART
+	state_art.texture = load(path) as Texture2D if path != "" else null
+	state_art.visible = state_art.texture != null
 
 func try_interact(tool_id: String, selected_crop: CropData) -> String:
 	if tool_id == "hoe":
