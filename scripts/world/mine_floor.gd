@@ -20,7 +20,6 @@ const MINERAL_WEIGHTS := {
 
 func _ready() -> void:
 	_create_background_art()
-	_create_scene_objects()
 	_create_boundaries()
 	_create_exits()
 	_create_minerals()

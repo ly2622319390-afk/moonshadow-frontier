@@ -151,8 +151,8 @@ func _draw() -> void:
 	var base_color := Color("#9e825a")
 	if state == PlotState.WATERED:
 		base_color = Color("#5d7891")
-	draw_rect(Rect2(-28, -28, 56, 56), base_color)
-	draw_rect(Rect2(-28, -28, 56, 56), Color("#d5b879"), false, 2.0)
+	draw_rect(Rect2(-23, -23, 46, 46), base_color)
+	draw_rect(Rect2(-23, -23, 46, 46), Color("#d5b879"), false, 2.0)
 	if crop_data != null and state != PlotState.TILLED:
 		var crop_color := crop_data.mature_color if state == PlotState.MATURE else (crop_data.growing_color if growth_days > 0 else crop_data.seed_color)
 		draw_circle(Vector2.ZERO, 17.0 if state == PlotState.MATURE else 11.0, crop_color)

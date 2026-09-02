@@ -313,9 +313,8 @@ func _build_hotbar() -> void:
 		button.name = "Slot_%d" % (index + 1)
 		button.custom_minimum_size = Vector2(82, 72)
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		button.expand_icon = false
-		button.add_theme_constant_override("icon_max_width", 46)
+		button.icon = null
+		button.text = ""
 		button.pressed.connect(_select_slot.bind(index))
 		_apply_texture_button(button, "quickbar_slot")
 		hotbar_buttons.append(button)
@@ -629,19 +628,16 @@ func _update_hotbar() -> void:
 		return
 	for index in range(hotbar_buttons.size()):
 		var button := hotbar_buttons[index]
-		var text := "%d" % (index + 1)
+		var item_id := ""
+		var count := 0
 		if index < 5:
 			var tool: ToolData = TOOL_DEFINITIONS[index]
-			button.icon = _get_item_texture(tool.tool_id)
-			if button.icon == null:
-				text += "\n" + str(TOOL_ICONS.get(tool.tool_id, ""))
+			item_id = tool.tool_id
+			count = 1
 		else:
-			var item_id: String = SEED_IDS[index - 5]
-			button.icon = _get_item_texture(item_id)
-			if button.icon == null:
-				text += "\n" + str(ITEM_ICONS.get(item_id, ""))
-			text += "\nx%d" % int(WorldManager.inventory.get(item_id, 0))
-		button.text = text
+			item_id = SEED_IDS[index - 5]
+			count = int(WorldManager.inventory.get(item_id, 0))
+		_build_slot_visual(button, item_id, Vector2(82, 72), false, count, index + 1)
 		button.tooltip_text = _slot_tooltip(index)
 		_apply_button_style(button, index == selected_slot)
 		_apply_texture_button(button, "quickbar_slot", index == selected_slot)
@@ -693,17 +689,70 @@ func _refresh_inventory() -> void:
 			items.append(tool_id)
 	for item_id in items:
 		var item_button := Button.new()
-		item_button.custom_minimum_size = Vector2(96, 84)
-		item_button.icon = _get_item_texture(item_id)
-		item_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		item_button.expand_icon = false
-		item_button.add_theme_constant_override("icon_max_width", 54)
-		item_button.text = _inventory_item_text(item_id)
+		item_button.custom_minimum_size = Vector2(112, 108)
+		item_button.icon = null
+		item_button.text = ""
+		var item_count := 1 if item_id in TOOL_IDS else int(WorldManager.inventory.get(item_id, 0))
+		_build_slot_visual(item_button, item_id, Vector2(112, 108), true, item_count, -1)
 		item_button.tooltip_text = _inventory_item_tooltip(item_id)
 		item_button.pressed.connect(_assign_to_hotbar.bind(item_id))
 		_apply_button_style(item_button, item_id == selected_item_id)
 		_apply_texture_button(item_button, "inventory_slot", item_id == selected_item_id)
 		inventory_grid.add_child(item_button)
+
+func _build_slot_visual(button: Button, item_id: String, slot_size: Vector2, show_name: bool, count: int, hotkey: int) -> void:
+	var old := button.get_node_or_null("SlotVisual")
+	if old != null:
+		old.queue_free()
+	var visual := Control.new()
+	visual.name = "SlotVisual"
+	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	visual.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.add_child(visual)
+	var icon := TextureRect.new()
+	icon.name = "ItemIcon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _get_item_texture(item_id)
+	icon.position = Vector2((slot_size.x - 52.0) * 0.5, 6.0)
+	icon.size = Vector2(52, 52)
+	visual.add_child(icon)
+	if icon.texture == null:
+		var fallback := _label(str(TOOL_ICONS.get(item_id, ITEM_ICONS.get(item_id, "?"))), 24, Color("#f4d35e"))
+		fallback.position = Vector2((slot_size.x - 34.0) * 0.5, 14.0)
+		fallback.size = Vector2(34, 34)
+		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visual.add_child(fallback)
+	if hotkey > 0:
+		var key_label := _label(str(hotkey), 12, Color("#fff5d6"))
+		key_label.position = Vector2(6, 4)
+		key_label.size = Vector2(20, 18)
+		key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key_label.add_theme_color_override("font_outline_color", Color("#2b211b"))
+		key_label.add_theme_constant_override("outline_size", 4)
+		key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visual.add_child(key_label)
+	if show_name:
+		var name := TOOL_DEFINITIONS[TOOL_IDS.find(item_id)].display_name if item_id in TOOL_IDS else ItemCatalog.get_item_name(item_id)
+		var name_label := _label(name, 12, Color("#f5ead2"))
+		name_label.position = Vector2(4, 62)
+		name_label.size = Vector2(slot_size.x - 8, 22)
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.clip_text = true
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visual.add_child(name_label)
+	var count_label := _label("x%d" % count, 12, Color("#fff5d6"))
+	count_label.position = Vector2(slot_size.x - 38, slot_size.y - 22)
+	count_label.size = Vector2(34, 18)
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count_label.add_theme_color_override("font_outline_color", Color("#2b211b"))
+	count_label.add_theme_constant_override("outline_size", 4)
+	count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Tools are permanent equipment; only stackable items show a quantity in the hotbar.
+	count_label.visible = not (item_id in TOOL_IDS and not show_name)
+	visual.add_child(count_label)
 
 func _inventory_item_text(item_id: String) -> String:
 	var info := ItemCatalog.get_info(item_id)

@@ -28,7 +28,6 @@ const RESOURCE_DEFINITIONS := {
 
 func _ready() -> void:
 	_create_background_art()
-	_create_scene_objects()
 	if not has_node("Player"):
 		var created_player := PLAYER_SCENE.instantiate()
 		created_player.name = "Player"
@@ -175,11 +174,35 @@ func _create_farm_plots() -> void:
 	if region_name != "farm":
 		return
 	var plot_layer: Node = get_node_or_null("FarmPlotLayer") if has_node("FarmPlotLayer") else self
-	for row in range(3):
-		for column in range(4):
+	# The farm uses a Stardew-like free tilling grid. Every grass/dirt cell is
+	# available; only water, the farmhouse footprint and fixed props are excluded.
+	const tile_size := 48
+	var blocked := [
+		Rect2(150, 220, 390, 360), # farmhouse and porch
+		Rect2(610, 105, 285, 175), # pond
+		Rect2(1360, 470, 150, 210), # stone well
+		Rect2(390, 610, 190, 180), # small shed / crate area
+	]
+	for row in range(1, 18):
+		for column in range(1, 33):
+			var position := Vector2(column * tile_size + tile_size * 0.5, row * tile_size + tile_size * 0.5)
+			var blocked_by_map := false
+			for rect in blocked:
+				if rect.has_point(position):
+					blocked_by_map = true
+					break
+			if blocked_by_map:
+				continue
+			var blocked_by_resource := false
+			for resource in get_tree().get_nodes_in_group("resource_nodes"):
+				if is_instance_valid(resource) and resource.global_position.distance_to(position) < 42.0:
+					blocked_by_resource = true
+					break
+			if blocked_by_resource:
+				continue
 			var plot := Node2D.new()
 			plot.name = "FarmPlot_%d_%d" % [column, row]
-			plot.position = Vector2(420 + column * 68, 500 + row * 68)
+			plot.position = position
 			plot.set_script(FARM_PLOT_SCRIPT)
 			plot.grid_position = Vector2i(column, row)
 			plot.z_index = 2

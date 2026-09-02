@@ -7,7 +7,8 @@ region_name = "farm"
 [node name="GroundTileMapLayer" type="TileMapLayer" parent="."]
 z_index = -9
 scale = Vector2(0.25, 0.25)
-modulate = Color(1, 1, 1, 0.12)
+visible = false
+modulate = Color(1, 1, 1, 0)
 script = ExtResource("2")
 
 [node name="CollisionTileMapLayer" type="TileMapLayer" parent="."]
