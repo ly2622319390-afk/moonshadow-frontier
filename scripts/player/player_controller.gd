@@ -1,6 +1,8 @@
 extends CharacterBody2D
 
 const MOVE_SPEED := 220.0
+const MOVE_ACCELERATION := 1500.0
+const MOVE_DECELERATION := 1900.0
 const MAX_STAMINA := 100
 const TOOL_DEFINITIONS: Array[ToolData] = [
 	preload("res://resources/data/tools/hoe.tres"),
@@ -47,9 +49,11 @@ func _physics_process(_delta: float) -> void:
 	else:
 		walk_frame = 0
 		walk_frame_elapsed = 0.0
-	velocity = input_vector * MOVE_SPEED
+	var target_velocity := input_vector * MOVE_SPEED
+	var change_rate := MOVE_ACCELERATION if input_vector.length_squared() > 0.0 else MOVE_DECELERATION
+	velocity = velocity.move_toward(target_velocity, change_rate * _delta)
 	move_and_slide()
-	_update_character_art(input_vector.length_squared() > 0.0)
+	_update_character_art(velocity.length_squared() > 400.0)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:

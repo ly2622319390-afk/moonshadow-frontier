@@ -607,6 +607,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_select_slot(event.keycode - KEY_1)
 			get_viewport().set_input_as_handled()
 			return
+		if event.keycode == KEY_E and _near_bed(_get_player()):
+			var sleeper := _get_player()
+			if sleeper and sleeper.has_method("_try_sleep"):
+				sleeper.call("_try_sleep")
+			get_viewport().set_input_as_handled()
+			return
 		if event.keycode == KEY_E and _near_npc(_get_player()):
 			var npc := _nearest_npc(_get_player())
 			if npc:
@@ -843,7 +849,16 @@ func _update_interaction_prompt() -> void:
 	var anchor := player.global_position
 	var region := str(get_tree().current_scene.get("region_name"))
 	var has_prompt := false
-	if _near_resource(player):
+	if _near_bed(player):
+		prompt = "按 E 睡觉，进入下一天"
+		anchor = Vector2(245, 255)
+		has_prompt = true
+	elif _near_farm_plot(player):
+		prompt = "按 E 翻地、播种或浇水（空格也可使用工具）"
+		var plot := _nearest_farm_plot(player)
+		anchor = plot.global_position if plot else player.global_position
+		has_prompt = true
+	elif _near_resource(player):
 		var resource := _nearest_resource(player)
 		if resource:
 			var data: ResourceData = resource.get("resource_data")
@@ -914,7 +929,7 @@ func _near_tool_interaction() -> bool:
 	var player := _get_player()
 	if player == null:
 		return false
-	return _near_farm_plot(player) or _near_resource(player)
+	return not _near_bed(player) and (_near_farm_plot(player) or _near_resource(player))
 
 func _near_bed(player: Node2D) -> bool:
 	if player == null:
