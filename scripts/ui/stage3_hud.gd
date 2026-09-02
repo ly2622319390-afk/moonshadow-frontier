@@ -34,6 +34,7 @@ const ITEM_TEXTURES := {
 	"seal_fragment": "res://assets/items/seal_fragment.png",
 	"witch_amulet": "res://assets/items/witch_amulet.png",
 	"wood": "res://assets/items/resource_wood.png",
+	"tree": "res://assets/items/resource_wood.png",
 	"stone": "res://assets/items/resource_stone.png",
 	"copper_ore": "res://assets/items/resource_copper_ore.png",
 	"iron_ore": "res://assets/items/resource_iron_ore.png",
@@ -93,6 +94,7 @@ var hotbar: HBoxContainer
 var hotbar_buttons: Array[Button] = []
 var selected_slot := 0
 var selected_item_id := ""
+var hotbar_signature := ""
 var action_panel: PanelContainer
 var current_item_label: Label
 var interaction_label: Label
@@ -102,6 +104,7 @@ var inventory_panel: PanelContainer
 var inventory_grid: GridContainer
 var inventory_category_bar: HBoxContainer
 var inventory_category := "全部"
+var inventory_signature := ""
 var debug_panel: PanelContainer
 var debug_status_label: Label
 var shop_panel: PanelContainer
@@ -653,6 +656,11 @@ func _refresh_all() -> void:
 	objective_label.text = QuestManager.get_objective_text()
 	_update_current_item()
 	_update_hotbar()
+	if inventory_panel != null and inventory_panel.visible:
+		var signature := "%s|%s" % [str(WorldManager.inventory), inventory_category]
+		if signature != inventory_signature:
+			inventory_signature = signature
+			_refresh_inventory()
 	_update_fishing_label()
 	_update_shop_panel()
 
@@ -680,6 +688,10 @@ func selected_tool_index_valid() -> bool:
 func _update_hotbar() -> void:
 	if hotbar_buttons.is_empty():
 		return
+	var signature := "%d|%s|%d" % [selected_slot, str(WorldManager.inventory), int(_get_player().get("selected_tool_index")) if _get_player() else -1]
+	if signature == hotbar_signature:
+		return
+	hotbar_signature = signature
 	for index in range(hotbar_buttons.size()):
 		var button := hotbar_buttons[index]
 		var item_id := ""
@@ -732,11 +744,17 @@ func _refresh_inventory() -> void:
 	if inventory_grid == null:
 		return
 	for child in inventory_grid.get_children():
-		child.queue_free()
+		child.free()
 	var items: Array[String] = []
+	var all_ids: Array[String] = []
 	for item_id in ItemCatalog.ITEMS.keys():
+		all_ids.append(str(item_id))
+	for item_id in WorldManager.inventory.keys():
+		if str(item_id) not in all_ids:
+			all_ids.append(str(item_id))
+	for item_id in all_ids:
 		var count := int(WorldManager.inventory.get(item_id, 0))
-		var category := str(ItemCatalog.get_info(item_id).get("category", "未知"))
+		var category := str(ItemCatalog.get_info(item_id).get("category", "其他"))
 		if count > 0 and (inventory_category == "全部" or inventory_category == category):
 			items.append(str(item_id))
 	if inventory_category == "全部" or inventory_category == "工具":
@@ -754,11 +772,12 @@ func _refresh_inventory() -> void:
 		_apply_button_style(item_button, item_id == selected_item_id)
 		_apply_texture_button(item_button, "inventory_slot", item_id == selected_item_id)
 		inventory_grid.add_child(item_button)
+	inventory_signature = "%s|%s" % [str(WorldManager.inventory), inventory_category]
 
 func _build_slot_visual(button: Button, item_id: String, slot_size: Vector2, show_name: bool, count: int, hotkey: int) -> void:
 	var old := button.get_node_or_null("SlotVisual")
 	if old != null:
-		old.queue_free()
+		old.free()
 	var visual := Control.new()
 	visual.name = "SlotVisual"
 	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
