@@ -24,15 +24,30 @@ var facing_direction := Vector2.DOWN
 var last_tool_time_msec := -100000
 var last_action_message := "1-5：选择工具 | Q：切换种子 | 空格：使用 | E：在家睡觉"
 var walk_frame := 0
-var walk_frame_elapsed := 0.0
-const WALK_FRAME_INTERVAL := 0.10
-const WALK_FRAME_COUNT := 4
+var action_tween: Tween
+var walk_distance := 0.0
+const WALK_FRAME_DISTANCE := 24.0
+const WALK_FRAME_SEQUENCE := [0, 1, 2, 3]
 const WALK_FRAME_WIDTH := 256.0
 const WALK_FRAME_HEIGHT := 256.0
 const IDLE_FRAME_WIDTH := 768.0
 const IDLE_FRAME_HEIGHT := 1024.0
 const PLAYER_IDLE_TEXTURE: Texture2D = preload("res://assets/characters/player/player_idle_sheet.png")
 const PLAYER_WALK_TEXTURE: Texture2D = preload("res://assets/characters/player/player_walk_4x4.png")
+const TOOL_ART_PATHS := {"hoe": "res://assets/tools/tool_hoe.png", "axe": "res://assets/tools/tool_axe.png", "pickaxe": "res://assets/tools/tool_pickaxe.png", "fishing_rod": "res://assets/tools/tool_fishing_rod.png", "watering_can": "res://assets/tools/tool_watering_can.png"}
+const TOOL_VISUALS := {
+	"hoe": {"offset": Vector2(470, -470), "scale": 0.050},
+	"axe": {"offset": Vector2(-455, -455), "scale": 0.044},
+	"pickaxe": {"offset": Vector2(455, -455), "scale": 0.048},
+	"fishing_rod": {"offset": Vector2(470, -470), "scale": 0.055},
+	"watering_can": {"offset": Vector2(0, 430), "scale": 0.036},
+}
+const TOOL_DIRECTION_POSES := {
+	"down": {"position": Vector2(11, -23), "rotation": 2.35, "z_index": 2},
+	"right": {"position": Vector2(15, -27), "rotation": 1.57, "z_index": 2},
+	"up": {"position": Vector2(-10, -31), "rotation": 0.0, "z_index": 0},
+	"left": {"position": Vector2(-15, -27), "rotation": 3.14, "z_index": 2},
+}
 signal stamina_changed(current: int, maximum: int)
 
 func _physics_process(_delta: float) -> void:
@@ -45,18 +60,20 @@ func _physics_process(_delta: float) -> void:
 	).normalized()
 	if input_vector.length_squared() > 0.0:
 		facing_direction = input_vector
-		walk_frame_elapsed += _delta
-		if walk_frame_elapsed >= WALK_FRAME_INTERVAL:
-			walk_frame_elapsed = fmod(walk_frame_elapsed, WALK_FRAME_INTERVAL)
-			walk_frame = (walk_frame + 1) % WALK_FRAME_COUNT
-	else:
-		walk_frame = 0
-		walk_frame_elapsed = 0.0
+		_update_held_tool()
 	var target_velocity := input_vector * MOVE_SPEED
 	var change_rate := MOVE_ACCELERATION if input_vector.length_squared() > 0.0 else MOVE_DECELERATION
 	velocity = velocity.move_toward(target_velocity, change_rate * _delta)
 	move_and_slide()
-	_update_character_art(velocity.length_squared() > 400.0)
+	var is_moving := velocity.length_squared() > 400.0
+	if is_moving:
+		# Advance the walk cycle by distance so the feet keep pace with movement.
+		walk_distance += velocity.length() * _delta
+		walk_frame = int(floor(walk_distance / WALK_FRAME_DISTANCE)) % WALK_FRAME_SEQUENCE.size()
+	else:
+		walk_frame = 0
+		walk_distance = 0.0
+	_update_character_art(is_moving)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -72,6 +89,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_select_tool(4)
 		elif event.keycode == KEY_Q:
 			selected_crop_index = (selected_crop_index + 1) % CROP_DEFINITIONS.size()
+			selected_tool_index = -1
+			_update_held_tool()
 			last_action_message = "已选择种子：%s" % CROP_DEFINITIONS[selected_crop_index].display_name
 		elif event.keycode == KEY_SPACE:
 			_try_tool_action()
@@ -79,6 +98,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _try_npc_interaction():
 				return
 			if _try_quest_stone_interaction():
+				return
+			if get_parent().get("interior_id") == "general_store" and global_position.distance_to(Vector2(1190, 430)) < 100.0:
+				ShopManager.toggle()
+				last_action_message = "已打开杂货店商品目录。"
+				return
+			var nearby_plot := _find_target_in_group("farm_plots", 90.0)
+			if nearby_plot != null and (selected_tool_index >= 0 or int(nearby_plot.get("state")) == 1):
+				_try_tool_action()
+				return
+			if _near_fishing_spot():
+				_try_tool_action()
 				return
 			if get_parent().get("region_name") == "town" and global_position.distance_to(Vector2(275, 355)) < 170.0:
 				ShopManager.toggle()
@@ -88,6 +118,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _try_npc_interaction() -> bool:
 	for npc in get_tree().get_nodes_in_group("npcs"):
 		if is_instance_valid(npc) and npc.visible and global_position.distance_to(npc.global_position) < 65.0:
+			if npc.has_method("begin_dialogue"):
+				npc.begin_dialogue()
 			last_action_message = "%s：%s" % [npc.get_display_name(), npc.get_dialogue()]
 			return true
 	return false
@@ -107,6 +139,7 @@ func _try_sleep() -> void:
 func _select_tool(index: int) -> void:
 	selected_tool_index = index
 	last_action_message = "已选择工具：%s" % TOOL_DEFINITIONS[selected_tool_index].display_name
+	_update_held_tool()
 
 func get_selected_tool_name() -> String:
 	return TOOL_DEFINITIONS[selected_tool_index].display_name
@@ -116,9 +149,12 @@ func get_selected_crop_name() -> String:
 
 func _try_tool_action() -> void:
 	if selected_tool_index < 0:
+		_update_held_tool()
 		var seed_plot := _find_target_in_group("farm_plots", 90.0)
 		if seed_plot != null and int(seed_plot.get("state")) == 1:
 			var seed_result: String = str(seed_plot.call("try_interact", "hoe", CROP_DEFINITIONS[selected_crop_index]))
+			if seed_result == "seeded":
+				_play_seed_animation(seed_plot)
 			last_action_message = "播种%s成功。" % CROP_DEFINITIONS[selected_crop_index].display_name if seed_result == "seeded" else "这里不能播种，请先锄地。"
 		else:
 			last_action_message = "请先选择工具。"
@@ -136,6 +172,8 @@ func _try_tool_action() -> void:
 		return
 	if tool.tool_id == "fishing_rod" and _can_fish_here():
 		if FishingManager.start_fishing():
+			_play_tool_animation(tool.tool_id)
+			_play_tool_swing()
 			stamina -= stamina_cost
 			last_tool_time_msec = now
 			last_action_message = "抛竿成功，体力-%d。" % stamina_cost
@@ -147,6 +185,8 @@ func _try_tool_action() -> void:
 		if target != null:
 			var plot_result: String = str(target.call("try_interact", tool.tool_id, CROP_DEFINITIONS[selected_crop_index]))
 			if plot_result in ["tilled", "seeded", "watered"] or plot_result.begins_with("harvested_"):
+				_play_tool_animation(tool.tool_id)
+				_play_tool_swing()
 				stamina -= stamina_cost
 				last_tool_time_msec = now
 				last_action_message = _plot_result_message(plot_result, tool, stamina_cost)
@@ -167,16 +207,32 @@ func _try_tool_action() -> void:
 		last_action_message = "该资源当前不可用。"
 		return
 	stamina -= stamina_cost
+	_play_tool_animation(tool.tool_id)
+	_play_tool_swing()
 	last_tool_time_msec = now
 	last_action_message = "使用%s采集成功，体力-%d。" % [tool.display_name, stamina_cost]
 	stamina_changed.emit(stamina, MAX_STAMINA)
 
+func _play_tool_animation(tool_id: String) -> void:
+	var art := get_node_or_null("CharacterArt") as Sprite2D
+	if art != null:
+		# Tool actions must not rotate the whole character around their feet.
+		art.rotation = 0.0
+
 func _can_fish_here() -> bool:
 	if get_parent().get("region_name") != "river":
 		return false
+	if _near_fishing_spot():
+		return true
 	var near_left_bank := global_position.x >= 570.0 and global_position.x <= 680.0 and facing_direction.x > 0.0
 	var near_right_bank := global_position.x >= 920.0 and global_position.x <= 1030.0 and facing_direction.x < 0.0
 	return near_left_bank or near_right_bank
+
+func _near_fishing_spot() -> bool:
+	for spot in get_tree().get_nodes_in_group("fishing_spots"):
+		if is_instance_valid(spot) and global_position.distance_to(spot.global_position) < 82.0:
+			return true
+	return false
 
 func _plot_result_message(result: String, tool: ToolData, stamina_cost: int) -> String:
 	if result == "tilled":
@@ -217,6 +273,9 @@ func _try_placeholder_tool_action() -> void:
 func _ready() -> void:
 	TimeManager.day_started.connect(_on_day_started)
 	stamina_changed.emit(stamina, MAX_STAMINA)
+	_update_held_tool()
+	modulate.a = 0.0
+	create_tween().tween_property(self, "modulate:a", 1.0, 0.35)
 
 func _on_day_started(_day: int) -> void:
 	stamina = MAX_STAMINA
@@ -242,7 +301,7 @@ func _update_character_art(is_moving: bool) -> void:
 			row = 2 if facing_direction.x < 0.0 else 3
 		else:
 			row = 0 if facing_direction.y > 0.0 else 1
-		column = walk_frame
+		column = WALK_FRAME_SEQUENCE[walk_frame]
 		character_art.scale = Vector2(0.24, 0.24)
 	else:
 		# Idle sheet remains the original 4x1 layout.
@@ -258,7 +317,41 @@ func _update_character_art(is_moving: bool) -> void:
 		frame_width,
 		frame_height
 	)
+	character_art.region_filter_clip_enabled = true
 	queue_redraw()
+
+func _update_held_tool() -> void:
+	var held := get_node_or_null("HeldTool") as Sprite2D
+	if held != null:
+		# Tools remain usable through the hotbar, but are intentionally not drawn on the character.
+		held.visible = false
+
+func _get_facing_key() -> String:
+	if absf(facing_direction.x) > absf(facing_direction.y):
+		return "left" if facing_direction.x < 0.0 else "right"
+	return "up" if facing_direction.y < 0.0 else "down"
+
+func _play_seed_animation(plot: Node) -> void:
+	if plot == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(plot, "scale", Vector2(0.88, 0.88), 0.08)
+	tween.tween_property(plot, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _play_tool_swing() -> void:
+	var held := get_node_or_null("HeldTool") as Sprite2D
+	if held == null or not held.visible: return
+	if action_tween != null and action_tween.is_valid():
+		action_tween.kill()
+	var start_rotation := held.rotation
+	var tool_id := TOOL_DEFINITIONS[selected_tool_index].tool_id
+	var swing_angle := 0.35 if tool_id == "watering_can" else (0.5 if tool_id == "fishing_rod" else 0.8)
+	var swing_direction := -1.0 if _get_facing_key() == "left" else 1.0
+	action_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	action_tween.tween_property(held, "rotation", start_rotation + swing_angle * swing_direction, 0.10)
+	action_tween.tween_property(held, "rotation", start_rotation - swing_angle * 0.35 * swing_direction, 0.12)
+	action_tween.tween_property(held, "rotation", start_rotation, 0.10)
+	action_tween.finished.connect(_update_held_tool)
 
 func _draw() -> void:
 	var character_art := get_node_or_null("CharacterArt") as Sprite2D

@@ -14,23 +14,19 @@ func _run_audit() -> void:
 	if current_scene.get_node_or_null("Player") == null:
 		_quit_with_error("farm has no player")
 		return
-	world_manager.change_region("res://scenes/regions/Town.tscn", "town", Vector2(140, 450))
-	await scene_changed
+	await world_manager.change_region("res://scenes/regions/Town.tscn", "town", Vector2(140, 450))
 	if current_scene.name != "Town":
 		_quit_with_error("town transition failed")
 		return
-	world_manager.change_region("res://scenes/regions/Forest.tscn", "forest", Vector2(140, 450))
-	await scene_changed
+	await world_manager.change_region("res://scenes/regions/Forest.tscn", "forest", Vector2(140, 450))
 	if current_scene.name != "Forest":
 		_quit_with_error("forest transition failed")
 		return
-	world_manager.change_region("res://scenes/regions/Mine.tscn", "mine_1", Vector2(140, 700))
-	await scene_changed
+	await world_manager.change_region("res://scenes/regions/Mine.tscn", "mine_1", Vector2(140, 700))
 	if current_scene.name != "Mine":
 		_quit_with_error("mine floor one transition failed")
 		return
-	world_manager.change_region("res://scenes/regions/MineFloor2.tscn", "mine_2", Vector2(140, 180))
-	await scene_changed
+	await world_manager.change_region("res://scenes/regions/MineFloor2.tscn", "mine_2", Vector2(140, 180))
 	if current_scene.name != "MineFloor2":
 		_quit_with_error("mine floor two transition failed")
 		return

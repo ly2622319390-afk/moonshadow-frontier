@@ -7,6 +7,7 @@ const EXIT_SCRIPT := preload("res://scripts/world/region_exit.gd")
 const RESOURCE_NODE_SCRIPT := preload("res://scripts/world/resource_node.gd")
 const FARM_PLOT_SCRIPT := preload("res://scripts/world/farm_plot.gd")
 const QUEST_STONE_SCRIPT := preload("res://scripts/world/quest_stone.gd")
+const FISHING_SPOT_SCRIPT := preload("res://scripts/world/fishing_spot.gd")
 const BACKGROUND_PATHS := {
 	"farm": "res://assets/scenes/imported/farm_background_clean.png",
 	"town": "res://assets/scenes/imported/town_background_clean.png",
@@ -38,6 +39,7 @@ func _ready() -> void:
 	_create_boundaries()
 	_create_exits()
 	_create_resources()
+	_create_fishing_spots()
 	_create_farm_plots()
 	_create_npcs()
 	_create_quest_content()
@@ -47,26 +49,22 @@ func _ready() -> void:
 
 const SCENE_OBJECTS := {
 	"farm": [
-		{"name": "PlayerFarmhouse", "path": "res://assets/buildings/farmhouse.png", "position": Vector2(245, 255), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(180, 130)},
-		{"name": "FarmStoneWell", "path": "", "position": Vector2(300, 400), "scale": 0.10, "z": 5, "solid": true, "collision": Vector2(80, 70)},
+		{"name": "PlayerFarmhouse", "path": "res://assets/buildings/farmhouse.png", "position": Vector2(245, 255), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(180, 130), "interior": "farmhouse"},
 		{"name": "FarmScarecrow", "path": "res://assets/objects/scarecrow.png", "position": Vector2(760, 520), "scale": 0.09, "z": 4, "solid": true, "collision": Vector2(40, 40)},
-		{"name": "FarmCrate", "path": "res://assets/objects/wood_crate.png", "position": Vector2(480, 420), "scale": 0.09, "z": 4, "solid": true, "collision": Vector2(52, 52)},
 		{"name": "FarmWoodFence", "path": "res://assets/objects/wood_fence.png", "position": Vector2(560, 730), "scale": 0.08, "z": 4, "solid": true, "collision": Vector2(240, 48)},
 	],
 	"town": [
-		{"name": "GeneralStoreArt", "path": "res://assets/buildings/general_store.png", "position": Vector2(275, 355), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125)},
-		{"name": "BlacksmithArt", "path": "res://assets/buildings/blacksmith.png", "position": Vector2(760, 300), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125)},
-		{"name": "HerbShopArt", "path": "res://assets/buildings/herb_shop.png", "position": Vector2(1240, 355), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125)},
-		{"name": "TravelerStallArt", "path": "res://assets/buildings/traveler_stall.png", "position": Vector2(1040, 620), "scale": 0.13, "z": 4, "solid": true, "collision": Vector2(150, 90)},
+		{"name": "GeneralStoreArt", "path": "res://assets/buildings/general_store.png", "position": Vector2(275, 355), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125), "interior": "general_store"},
+		{"name": "BlacksmithArt", "path": "res://assets/buildings/blacksmith.png", "position": Vector2(760, 300), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125), "interior": "blacksmith"},
+		{"name": "HerbShopArt", "path": "res://assets/buildings/herb_shop.png", "position": Vector2(1240, 355), "scale": 0.16, "z": 4, "solid": true, "collision": Vector2(170, 125), "interior": "herb_shop"},
 		{"name": "AlchemyWorkbenchArt", "path": "res://assets/buildings/alchemy_workbench.png", "position": Vector2(1380, 620), "scale": 0.11, "z": 5, "solid": true, "collision": Vector2(120, 70)},
 		{"name": "TownNoticeBoardArt", "path": "res://assets/buildings/notice_board.png", "position": Vector2(520, 560), "scale": 0.09, "z": 5, "solid": true, "collision": Vector2(45, 45)},
 	],
 	"forest": [
-		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 760), "scale": 0.14, "z": 4},
+		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 760), "scale": 0.14, "z": 4, "solid": true, "bridge": true, "rotation": 1.5708, "collision": Vector2(180, 64), "target": "res://scenes/regions/River.tscn", "region": "river", "spawn": Vector2(800, 160)},
 		{"name": "MineEntranceArt", "path": "res://assets/buildings/mine_entrance.png", "position": Vector2(1450, 700), "scale": 0.14, "z": 4},
 	],
 	"river": [
-		{"name": "WoodBridgeArt", "path": "res://assets/objects/wood_bridge.png", "position": Vector2(800, 450), "scale": 0.14, "z": 4},
 	],
 }
 
@@ -74,16 +72,23 @@ func _create_scene_objects() -> void:
 	var object_layer: Node = get_node_or_null("ObjectLayer") if has_node("ObjectLayer") else self
 	for data in SCENE_OBJECTS.get(region_name, []):
 		var asset_path := str(data.path)
-		if data.name == "FarmStoneWell":
-			asset_path = "res://assets/buildings/farm_well_repaired.png" if WorldManager.well_repaired else "res://assets/buildings/farm_well_stone.png"
 		var texture := load(asset_path) as Texture2D
 		if texture == null:
 			continue
 		var parent: Node = object_layer
 		if bool(data.get("solid", false)):
-			var body := StaticBody2D.new()
+			var is_bridge := bool(data.get("bridge", false))
+			var body: Node = Area2D.new() if is_bridge else StaticBody2D.new()
 			body.name = str(data.name)
 			body.position = data.position
+			(body as Node2D).rotation = float(data.get("rotation", 0.0))
+			if is_bridge:
+				body.set_script(EXIT_SCRIPT)
+				body.set("target_scene", str(data.target))
+				body.set("target_region", str(data.region))
+				body.set("spawn_position", data.spawn)
+				body.set("collision_layer", 0)
+				body.set("collision_mask", 1)
 			object_layer.add_child(body)
 			var collision := CollisionShape2D.new()
 			var shape := RectangleShape2D.new()
@@ -98,6 +103,18 @@ func _create_scene_objects() -> void:
 		sprite.scale = Vector2(float(data.scale), float(data.scale))
 		sprite.z_index = int(data.z)
 		parent.add_child(sprite)
+		if data.has("interior") and region_name in ["farm", "town"]:
+			var door := Area2D.new()
+			door.name = str(data.name) + "Door"
+			door.position = data.position + Vector2(0, 78)
+			door.set_script(preload("res://scripts/world/building_door.gd"))
+			door.interior_id = str(data.interior)
+			var door_shape := CollisionShape2D.new()
+			var door_rect := RectangleShape2D.new()
+			door_rect.size = Vector2(58, 42)
+			door_shape.shape = door_rect
+			door.add_child(door_shape)
+			add_child(door)
 
 func _create_background_art() -> void:
 	var path := str(BACKGROUND_PATHS.get(region_name, ""))
@@ -116,6 +133,18 @@ func _create_background_art() -> void:
 	add_child(background)
 
 func _on_time_changed(_day: int, _minutes: int, _period: String) -> void:
+	var tint := TimeManager.get_ambient_tint()
+	var overlay := get_node_or_null("AmbientOverlay") as ColorRect
+	if overlay == null:
+		overlay = ColorRect.new()
+		overlay.name = "AmbientOverlay"
+		overlay.position = Vector2.ZERO
+		overlay.size = MAP_SIZE
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.z_index = 15
+		add_child(overlay)
+	overlay.color = Color(tint.r, tint.g, tint.b, 0.0)
+	create_tween().tween_property(overlay, "color", tint, 1.2)
 	queue_redraw()
 
 func _on_quest_changed() -> void:
@@ -148,8 +177,8 @@ func _create_exits() -> void:
 	var exits: Array = {
 		"farm": [{"name": "TownExit", "position": Vector2(1545, 450), "target": "res://scenes/regions/Town.tscn", "region": "town", "spawn": Vector2(140, 450)}],
 		"town": [{"name": "FarmExit", "position": Vector2(55, 450), "target": "res://scenes/regions/Farm.tscn", "region": "farm", "spawn": Vector2(1460, 450)}, {"name": "ForestExit", "position": Vector2(1545, 450), "target": "res://scenes/regions/Forest.tscn", "region": "forest", "spawn": Vector2(140, 450)}],
-		"forest": [{"name": "TownExit", "position": Vector2(55, 450), "target": "res://scenes/regions/Town.tscn", "region": "town", "spawn": Vector2(1460, 450)}, {"name": "RiverExit", "position": Vector2(800, 845), "target": "res://scenes/regions/River.tscn", "region": "river", "spawn": Vector2(800, 160)}, {"name": "MineEntrance", "position": Vector2(1545, 700), "target": "res://scenes/regions/Mine.tscn", "region": "mine", "spawn": Vector2(140, 450)}],
-		"river": [{"name": "ForestExit", "position": Vector2(800, 55), "target": "res://scenes/regions/Forest.tscn", "region": "forest", "spawn": Vector2(800, 730)}],
+		"forest": [{"name": "TownExit", "position": Vector2(55, 450), "target": "res://scenes/regions/Town.tscn", "region": "town", "spawn": Vector2(1460, 450)}, {"name": "MineEntrance", "position": Vector2(1545, 700), "target": "res://scenes/regions/Mine.tscn", "region": "mine", "spawn": Vector2(140, 450)}],
+		"river": [{"name": "ForestExit", "position": Vector2(800, 55), "target": "res://scenes/regions/Forest.tscn", "region": "forest", "spawn": Vector2(800, 700)}],
 		"mine": [{"name": "ForestExit", "position": Vector2(55, 450), "target": "res://scenes/regions/Forest.tscn", "region": "forest", "spawn": Vector2(1460, 700)}]
 	}.get(region_name, [])
 	for data in exits:
@@ -183,6 +212,22 @@ func _create_resources() -> void:
 		resource_node.resource_data = RESOURCE_DEFINITIONS[placement[0]]
 		object_layer.add_child(resource_node)
 
+func _create_fishing_spots() -> void:
+	if region_name != "river":
+		return
+	var spots := [Vector2(620, 250), Vector2(620, 500), Vector2(980, 650)]
+	for index in spots.size():
+		var spot := Area2D.new()
+		spot.name = "FishingSpot_%d" % (index + 1)
+		spot.position = spots[index]
+		spot.set_script(FISHING_SPOT_SCRIPT)
+		var collision := CollisionShape2D.new()
+		var shape := CircleShape2D.new()
+		shape.radius = 54.0
+		collision.shape = shape
+		spot.add_child(collision)
+		add_child(spot)
+
 func _create_farm_plots() -> void:
 	if region_name != "farm":
 		return
@@ -192,9 +237,7 @@ func _create_farm_plots() -> void:
 	const tile_size := 48
 	var blocked := [
 		Rect2(150, 155, 250, 220), # farmhouse and porch
-		Rect2(255, 360, 95, 95), # stone well
 		Rect2(730, 490, 70, 70), # scarecrow
-		Rect2(450, 390, 70, 70), # crate
 		Rect2(430, 700, 260, 80), # fence
 	]
 	for row in range(1, 18):
@@ -225,8 +268,15 @@ func _create_farm_plots() -> void:
 func _create_npcs() -> void:
 	var npc_layer: Node = get_node_or_null("NPCLayer") if has_node("NPCLayer") else self
 	for npc_data in NPCatalog.NPCS:
-		var npc := Node2D.new()
+		var npc := CharacterBody2D.new()
 		npc.name = "NPC_" + npc_data.npc_id
+		npc.collision_layer = 0
+		npc.collision_mask = 1
+		var npc_collision := CollisionShape2D.new()
+		var npc_shape := CircleShape2D.new()
+		npc_shape.radius = 16.0
+		npc_collision.shape = npc_shape
+		npc.add_child(npc_collision)
 		npc.set_script(preload("res://scripts/world/npc_controller.gd"))
 		npc.npc_data = npc_data
 		npc.position = Vector2(200, 200)

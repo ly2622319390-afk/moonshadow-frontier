@@ -5,6 +5,10 @@
 # This folder is an older nested project copy, not the active project root.
 /moonshadow-frontier/
 
+# Temporary imported-image backups and manual work files
+assets/characters/npcs/_backup_*/
+/work/
+
 # Local runtime and editor files
 *.log
 *.tmp

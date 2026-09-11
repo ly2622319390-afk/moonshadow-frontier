@@ -69,6 +69,9 @@ func _finish(success: bool) -> void:
 	state = FishingState.RESULT
 	if success:
 		WorldManager.add_item(selected_fish.fish_id)
+		var player := get_tree().current_scene.get_node_or_null("Player")
+		if player:
+			WorldManager.notify_item_collected(selected_fish.fish_id, player.global_position)
 		status_text = "钓到了%s！" % selected_fish.display_name
 	else:
 		status_text = "%s挣脱了。" % selected_fish.display_name

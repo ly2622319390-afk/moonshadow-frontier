@@ -1,5 +1,7 @@
 extends Node
 
+signal item_collected(item_id: String, world_position: Vector2)
+
 var current_region := "farm"
 var player_state := {"velocity": Vector2.ZERO, "last_position": Vector2.ZERO}
 var temporary_drops: Array[Dictionary] = []
@@ -22,6 +24,9 @@ func _on_day_started(_day: int) -> void:
 
 func add_item(item_id: String, amount: int = 1) -> void:
 	inventory[item_id] = int(inventory.get(item_id, 0)) + amount
+
+func notify_item_collected(item_id: String, world_position: Vector2) -> void:
+	item_collected.emit(item_id, world_position)
 
 func upgrade_tool(tool_id: String) -> String:
 	var level := int(tool_levels.get(tool_id, 0))
@@ -55,6 +60,17 @@ func change_region(scene_path: String, target_region: String, spawn_position: Ve
 	if is_transitioning:
 		return
 	is_transitioning = true
+	var fade_layer := CanvasLayer.new()
+	fade_layer.layer = 100
+	var fade := ColorRect.new()
+	fade.color = Color(0.04, 0.05, 0.09, 0.0)
+	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade_layer.add_child(fade)
+	get_tree().root.add_child(fade_layer)
+	var fade_out_tween := create_tween()
+	fade_out_tween.tween_property(fade, "color:a", 1.0, 0.22)
+	await fade_out_tween.finished
 	var player := get_tree().current_scene.get_node_or_null("Player")
 	if player:
 		player_state.velocity = player.velocity
@@ -78,4 +94,8 @@ func change_region(scene_path: String, target_region: String, spawn_position: Ve
 		new_player.velocity = player_state.velocity
 	else:
 		push_error("Region has no Player node: %s" % scene_path)
+	var fade_in_tween := create_tween()
+	fade_in_tween.tween_property(fade, "color:a", 0.0, 0.28)
+	await fade_in_tween.finished
+	fade_layer.queue_free()
 	is_transitioning = false

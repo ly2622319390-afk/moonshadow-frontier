@@ -10,8 +10,8 @@ var last_processed_day := 1
 var crop_art: Sprite2D
 var state_art: Sprite2D
 const TILLED_ART := "res://assets/farming/farm_soil_tilled_cutout.png"
-const SEEDED_ART := "res://assets/farming/farm_soil_tilled_cutout.png"
-const WATERED_ART := "res://assets/objects/farm_soil_watered_patch.png"
+const SEEDED_ART := "res://assets/farming/farm_soil_seeded_cutout.png"
+const WATERED_ART := "res://assets/farming/farm_soil_watered_seeded_cutout.png"
 const MATURE_ART := "res://assets/objects/farm_crop_mature_patch.png"
 const CROP_ART_PATHS := {
 	"wheat": {"seed": "res://assets/items/seed_wheat.png", "mature": "res://assets/items/crop_wheat_mature.png"},
@@ -26,6 +26,15 @@ func _ready() -> void:
 	_load_state()
 	TimeManager.day_started.connect(_on_day_started)
 	queue_redraw()
+
+func _process(_delta: float) -> void:
+	if state_art == null:
+		return
+	if state == PlotState.MATURE:
+		var breathe := 1.0 + sin(Time.get_ticks_msec() * 0.004) * 0.035
+		state_art.scale = Vector2(0.055, 0.055) * breathe
+	else:
+		state_art.scale = Vector2(0.055, 0.055)
 
 func _setup_crop_art() -> void:
 	crop_art = Sprite2D.new()
@@ -54,8 +63,10 @@ func _update_crop_art() -> void:
 		return
 	var path := ""
 	match state:
-		PlotState.TILLED, PlotState.SEEDED:
+		PlotState.TILLED:
 			path = TILLED_ART
+		PlotState.SEEDED:
+			path = SEEDED_ART
 		PlotState.WATERED:
 			path = WATERED_ART
 		PlotState.MATURE:
@@ -69,6 +80,7 @@ func try_interact(tool_id: String, selected_crop: CropData) -> String:
 			state = PlotState.TILLED
 			_save_state()
 			_update_crop_art()
+			_pulse_state()
 			queue_redraw()
 			return "tilled"
 		if state == PlotState.TILLED:
@@ -83,25 +95,34 @@ func try_interact(tool_id: String, selected_crop: CropData) -> String:
 			state = PlotState.SEEDED
 			_save_state()
 			_update_crop_art()
+			_pulse_state()
 			queue_redraw()
 			return "seeded"
 		if state == PlotState.MATURE:
 			WorldManager.inventory[crop_data.crop_id] = int(WorldManager.inventory.get(crop_data.crop_id, 0)) + 1
+			WorldManager.notify_item_collected(crop_data.crop_id, global_position)
 			var harvest_name := crop_data.display_name
 			crop_data = null
 			growth_days = 0
 			state = PlotState.TILLED
 			_save_state()
 			_update_crop_art()
+			_pulse_state()
 			queue_redraw()
 			return "harvested_%s" % harvest_name
 	if tool_id == "watering_can" and state == PlotState.SEEDED:
 		state = PlotState.WATERED
 		_save_state()
 		_update_crop_art()
+		_pulse_state()
 		queue_redraw()
 		return "watered"
 	return "invalid"
+
+func _pulse_state() -> void:
+	var tween := create_tween()
+	scale = Vector2(0.92, 0.92)
+	tween.tween_property(self, "scale", Vector2.ONE, 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _on_day_started(new_day: int) -> void:
 	_process_days_until(new_day)
@@ -140,17 +161,5 @@ func _load_state() -> void:
 	_update_crop_art()
 
 func _draw() -> void:
-	if state == PlotState.NORMAL:
-		return
-	if state_art != null and state_art.visible and state_art.texture != null:
-		return
-	var base_color := Color("#9e825a")
-	if state == PlotState.WATERED:
-		base_color = Color("#5d7891")
-	draw_rect(Rect2(-23, -23, 46, 46), base_color)
-	draw_rect(Rect2(-23, -23, 46, 46), Color("#d5b879"), false, 2.0)
-	if crop_data != null and state != PlotState.TILLED:
-		var crop_color := crop_data.mature_color if state == PlotState.MATURE else (crop_data.growing_color if growth_days > 0 else crop_data.seed_color)
-		draw_circle(Vector2.ZERO, 17.0 if state == PlotState.MATURE else 11.0, crop_color)
-		if state != PlotState.MATURE:
-			draw_line(Vector2(0, 12), Vector2(0, -12), crop_color.darkened(0.35), 3.0)
+	# Plot visuals come exclusively from the shared state sprites.
+	pass

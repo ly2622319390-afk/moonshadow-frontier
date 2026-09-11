@@ -53,9 +53,15 @@ func try_collect(tool_id: String) -> String:
 		return "needs_%s" % resource_data.required_tool_id
 	is_available = false
 	monitoring = false
-	visible = false
+	var collected_tween := create_tween()
+	collected_tween.set_parallel(true)
+	collected_tween.tween_property(self, "modulate:a", 0.0, 0.18)
+	collected_tween.tween_property(self, "scale", Vector2(0.82, 0.82), 0.18)
+	collected_tween.chain().tween_callback(func(): visible = false)
 	WorldManager.temporary_drops.append({"resource_id": resource_data.resource_id, "display_name": resource_data.display_name, "collected_at_day": TimeManager.day})
 	WorldManager.add_item(resource_data.resource_id)
+	WorldManager.notify_item_collected(resource_data.resource_id, global_position)
+	_spawn_feedback()
 	_respawn_timer = get_tree().create_timer(resource_data.respawn_seconds)
 	_respawn_timer.timeout.connect(_respawn)
 	return "collected"
@@ -64,7 +70,30 @@ func _respawn() -> void:
 	is_available = true
 	monitoring = true
 	visible = true
+	modulate.a = 0.0
+	scale = Vector2(0.82, 0.82)
+	var respawn_tween := create_tween()
+	respawn_tween.set_parallel(true)
+	respawn_tween.tween_property(self, "modulate:a", 1.0, 0.35)
+	respawn_tween.tween_property(self, "scale", Vector2.ONE, 0.35)
 	queue_redraw()
+
+func _spawn_feedback() -> void:
+	var label := Label.new()
+	label.text = "+1 %s" % resource_data.display_name
+	label.position = global_position + Vector2(-42, -62)
+	label.z_index = 20
+	label.add_theme_color_override("font_color", Color("#f4d35e"))
+	label.add_theme_font_size_override("font_size", 16)
+	var feedback_parent := get_tree().current_scene
+	if feedback_parent == null:
+		return
+	feedback_parent.add_child(label)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position", label.position + Vector2(0, -28), 0.5)
+	tween.tween_property(label, "modulate:a", 0.0, 0.5)
+	tween.chain().tween_callback(label.queue_free)
 
 func _draw() -> void:
 	if resource_data == null:
